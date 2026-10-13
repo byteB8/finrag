@@ -4,20 +4,30 @@ from __future__ import annotations
 import json
 
 
+# Constrained JSON: free whitespace let greedy decoding loop (newlines/tabs until the token limit), and
+# compact JSON ("," / ":", xgrammar's only no-whitespace layout) shifted the model's choices: it flipped a
+# boolean field on 87 of 150 answers. llguidance takes separators from the schema's "x-guidance" key, so
+# the output is single-line JSON with the usual ", " / ": " spacing (on 30 test questions: flag
+# disagreements 17 -> 7, no cut-offs; bounded free whitespace ({0,12}) still cut off 7 of 30). vLLM 0.31 reads disable_any_whitespace only from the engine
+# config (the per-request flag is ignored), and the engine flag needs an explicit backend.
+NATURAL_JSON = {"whitespace_flexible": False, "item_separator": ", ", "key_separator": ": "}
+
+
 def make_llm(model: str, max_model_len: int, util: float, **kw):
-    """No whitespace between JSON tokens in constrained output. With it allowed, greedy decoding sometimes
-    emitted newlines/tabs until the token limit after a complete field (4-14 of 150 answers per run).
-    vLLM 0.31 reads this only from the engine-level config, which also needs an explicit backend; the
-    per-request `StructuredOutputsParams.disable_any_whitespace` is accepted but ignored."""
     from vllm import LLM
     return LLM(model=model, max_model_len=max_model_len, gpu_memory_utilization=util, seed=0,
                enable_prefix_caching=True,
-               structured_outputs_config={"backend": "xgrammar", "disable_any_whitespace": True}, **kw)
+               structured_outputs_config={"backend": "guidance", "disable_any_whitespace": True}, **kw)
+
+
+def with_separators(schema: dict) -> dict:
+    return {**schema, "x-guidance": NATURAL_JSON}
 
 
 def json_params(schema: dict, max_tokens: int, temperature: float = 0.0):
     """Sampling parameters whose output must match `schema` (the API was renamed across vLLM versions)."""
     from vllm import SamplingParams
+    schema = with_separators(schema)
     try:
         from vllm.sampling_params import StructuredOutputsParams
         return SamplingParams(temperature=temperature, max_tokens=max_tokens,
