@@ -50,6 +50,15 @@ def build_messages(question: str, passages: list[tuple[str, str]], prompt: str =
             {"role": "user", "content": f"Question: {question}\n\nExcerpts:\n\n{blocks}"}]
 
 
+_MISSING = re.compile(r"(not (contain|provide|include|available|specif|list|detail|explicitly)|cannot be "
+                      r"(calculated|determined)|insufficient|missing|unable)", re.I)
+
+
+def says_missing(text: str) -> bool:
+    """The answer text itself says the excerpts lack what is needed (the `answerable` flag can disagree)."""
+    return bool(_MISSING.search(text or ""))
+
+
 _NUM = re.compile(r"\d[\d,]*\.?\d*")
 
 

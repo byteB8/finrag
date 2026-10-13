@@ -36,6 +36,14 @@ class Checks(unittest.TestCase):
         self.assertFalse(answer.check(out, 2, self.passages)["valid_citations"])
 
 
+class Missing(unittest.TestCase):
+    def test_says_missing(self):
+        self.assertTrue(answer.says_missing("The excerpts do not contain the FY2022 figure."))
+        self.assertTrue(answer.says_missing("The ratio cannot be calculated because COGS is missing."))
+        self.assertFalse(answer.says_missing("Capex was USD 1,577 million in FY2018."))
+        self.assertFalse(answer.says_missing(None))
+
+
 class Judge(unittest.TestCase):
     def test_verdicts(self):
         self.assertEqual(grade.verdict_of({"verdict": "correct"}), "correct")

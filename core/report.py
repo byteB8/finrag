@@ -4,6 +4,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from core import metrics
+from core.answer import says_missing
+
 
 def _pct(ci) -> str:
     m, lo, hi = ci
@@ -27,6 +30,30 @@ def paper_baselines(fb_results: Path) -> list[dict]:
                     "correct": labels.count("Correct Answer") / n, "incorrect": labels.count("Incorrect Answer") / n,
                     "refusal": labels.count("Refusal") / n})
     return out
+
+
+def _jsonl(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
+
+
+def _verdicts(results: Path, name: str) -> dict[str, str]:
+    return {g["id"]: g["verdict"] for g in _jsonl(results / "raw" / f"grade_{name}.jsonl")}
+
+
+def prompt_ab(results: Path) -> list[str]:
+    """Paired comparison of prompt v2 against v1 on the same questions (share correct, bootstrap over questions)."""
+    rows = []
+    for ctx in ("gold", "retrieved"):
+        a, b = _verdicts(results, ctx), _verdicts(results, f"{ctx}_v2")
+        ids = sorted(set(a) & set(b))
+        if not ids:
+            continue
+        ca = [a[i] == "correct" for i in ids]
+        cb = [b[i] == "correct" for i in ids]
+        d = metrics.paired_diff(cb, ca)
+        rows.append(f"| {run_label(ctx).split(',')[0]} | {100 * sum(ca) / len(ids):.1f} | {100 * sum(cb) / len(ids):.1f} | "
+                    f"{100 * d['diff']:+.1f} [{100 * d['lo']:+.1f}, {100 * d['hi']:+.1f}] | {d['p']:.2f} |")
+    return rows
 
 
 def run_label(name: str) -> str:
@@ -68,12 +95,23 @@ def render(results: Path, fb_results: Path | None = None) -> str:
     rows = []
     for path in sorted(results.glob("grade_*.json")):
         g = json.loads(path.read_text())
-        rows.append(f"| {run_label(path.stem[len('grade_'):])} | {_pct(g['correct'])} | {_pct(g['incorrect'])} | "
-                    f"{_pct(g['refusal'])} | {g['valid_citations']}/{g['questions']} | {g['with_ungrounded_numbers']} |")
+        name = path.stem[len("grade_"):]
+        gen = _jsonl(results / "raw" / f"gen_{name}.jsonl")
+        missing = f"{sum(says_missing(r['answer']) for r in gen)}" if gen else "-"
+        rows.append(f"| {run_label(name)} | {_pct(g['correct'])} | {_pct(g['incorrect'])} | {_pct(g['refusal'])} | "
+                    f"{missing} | {g['valid_citations']}/{g['questions']} | {g['with_ungrounded_numbers']} |")
     if rows:
-        out += ["## Answers", "", "Verdicts from an LLM judge against the analysts' reference answers.", "",
-                "| context | correct | incorrect | refusal | valid citations | with numbers not in cited text |",
-                "|---|---|---|---|---|---|", *rows, ""]
+        out += ["## Answers", "", "Verdicts from an LLM judge (Qwen3-14B-AWQ) against the analysts' reference answers. "
+                "The judge files most answers that say the information is missing under *incorrect*, so the "
+                "*says info missing* column counts them from the answer text.", "",
+                "| run | correct | incorrect | refusal | says info missing | valid citations | with numbers not in cited text |",
+                "|---|---|---|---|---|---|---|", *rows, ""]
+    ab = prompt_ab(results)
+    if ab:
+        out += ["## Prompt A/B (v2 - v1, same questions)", "",
+                "Prompt v2 was written after reading v1's errors on these same questions (see the notebook), so it is "
+                "tuned on the test set.", "",
+                "| context | v1 correct % | v2 correct % | difference [95% CI] | p |", "|---|---|---|---|---|", *ab, ""]
     for path in sorted(results.glob("agreement_*.json")):
         if path.exists():
             a = json.loads(path.read_text())
