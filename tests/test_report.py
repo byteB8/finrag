@@ -17,6 +17,13 @@ class Baselines(unittest.TestCase):
         self.assertEqual((base[0]["model"], base[0]["setting"], base[0]["n"]), ("gpt-4", "sharedStore", 4))
         self.assertEqual((base[0]["correct"], base[0]["refusal"]), (0.25, 0.5))
 
+    def test_gold_label_drops_the_retrieval_config(self):
+        summary = {"ctx": "gold", "label": "prompt v2, hybrid + company + rerank"}
+        self.assertEqual(report.label_of("gold_v2", summary), "labelled evidence pages (oracle), prompt v2")
+        summary = {"ctx": "retrieved", "label": "prompt v1, dense + company + year + rerank"}
+        self.assertEqual(report.label_of("retrieved_dyr", summary),
+                         "retrieved chunks, prompt v1, dense + company + year + rerank")
+
     def test_render_without_results(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertTrue(report.render(Path(d)).startswith("# Results"))

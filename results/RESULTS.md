@@ -32,8 +32,8 @@ Verdicts from an LLM judge (Qwen3-14B-AWQ) against the analysts' reference answe
 
 | run | correct | incorrect | refusal | says info missing | valid citations | with numbers not in cited text |
 |---|---|---|---|---|---|---|
-| labelled evidence pages (oracle), prompt v1, hybrid + company + rerank | 64.0 [56.0, 71.3] | 28.0 [20.7, 35.3] | 8.0 [4.0, 12.7] | 28 | 142/150 | 89 |
-| labelled evidence pages (oracle), prompt v2, hybrid + company + rerank | 66.0 [58.0, 73.3] | 31.3 [24.0, 38.7] | 2.7 [0.7, 5.3] | 20 | 148/150 | 90 |
+| labelled evidence pages (oracle), prompt v1 | 64.0 [56.0, 71.3] | 28.0 [20.7, 35.3] | 8.0 [4.0, 12.7] | 28 | 142/150 | 89 |
+| labelled evidence pages (oracle), prompt v2 | 66.0 [58.0, 73.3] | 31.3 [24.0, 38.7] | 2.7 [0.7, 5.3] | 20 | 148/150 | 90 |
 | retrieved chunks, prompt v1, hybrid + company + rerank | 58.0 [50.0, 66.0] | 37.3 [30.0, 45.3] | 4.7 [1.3, 8.0] | 34 | 144/150 | 101 |
 | retrieved chunks, prompt v1, dense + company + year + rerank | 60.7 [52.7, 68.7] | 33.3 [26.0, 40.7] | 6.0 [2.7, 10.0] | 33 | 145/150 | 103 |
 | retrieved chunks, prompt v1, hybrid + company + year + rerank | 59.3 [51.3, 66.7] | 36.0 [28.7, 44.0] | 4.7 [1.3, 8.7] | 31 | 143/150 | 100 |

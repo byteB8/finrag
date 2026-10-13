@@ -61,7 +61,10 @@ def label_of(name: str, summary: dict) -> str:
     if not summary.get("label"):
         return run_label(name)
     ctx = {"retrieved": "retrieved chunks", "gold": "labelled evidence pages (oracle)"}.get(summary.get("ctx"), "")
-    return f"{ctx}, {summary['label']}" if ctx else summary["label"]
+    label = summary["label"]
+    if summary.get("ctx") == "gold":            # no retrieval with the evidence pages: keep the prompt only
+        label = label.split(", ")[0]
+    return f"{ctx}, {label}" if ctx else label
 
 
 def abstention(results: Path) -> list[str]:
