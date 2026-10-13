@@ -1,7 +1,7 @@
 """Pipeline entry point: one stage per call, settings from a TOML config (configs/mvp.toml by default).
 
     python run.py prep                  parse the PDFs, chunk every page, check the evidence labels
-    python run.py index                 BM25 index and dense embeddings of every chunk
+    python run.py index                 BM25 index and dense embeddings of every chunk (one GPU process per shard)
     python run.py search                retrieval for each question under each configuration, scored
     python run.py gen --ctx retrieved   answers from the top retrieved chunks (--ctx gold: the labelled pages)
     python run.py grade --ctx retrieved verdicts from an LLM judge against the reference answers
@@ -134,10 +134,16 @@ def chunk_texts(chunks) -> list[str]:
 
 
 def stage_index(cfg: dict, args) -> None:
+    """BM25 on the CPU, then dense embeddings sharded over every GPU with room (one `run.py embed` process
+    per GPU), merged into data/index/dense.npy. Shard 0 also embeds the questions (data/index/queries.npy)."""
+    import os
+    import subprocess
+    import sys
+
     import numpy as np
     import pandas as pd
 
-    from core.search import BM25, Encoder
+    from core.search import BM25
 
     chunks = pd.read_parquet(env.DATA / "chunks.parquet")
     texts = chunk_texts(chunks)
@@ -146,26 +152,65 @@ def stage_index(cfg: dict, args) -> None:
     BM25.build(texts).save(env.INDEX / "bm25")
     print(f"bm25: {len(texts)} chunks in {time.time() - t0:.0f}s", flush=True)
 
-    gpu, _ = env.pick_gpu(need_mib=cfg["embed"]["need_mib"])
-    env.use_gpu(gpu)
     t0 = time.time()
-    e = cfg["embed"]
-    enc = Encoder(e["model"], max_len=e["max_len"], batch=e["batch"])
-    vecs = enc.encode(texts, log_every=100)
+    need = cfg["embed"]["need_mib"]
+    want = os.environ.get("GPUS")   # e.g. "0,1"; default: every GPU with `need` MiB free
+    ids = [int(x) for x in want.split(",")] if want else [g["index"] for g in env.gpus() if g["free"] - 768 >= need]
+    if not ids:
+        raise RuntimeError("no GPU has room for the embedding model")
+    procs = [subprocess.Popen([sys.executable, "run.py", "embed", "--cfg", args.cfg, "--shard", str(k),
+                               "--shards", str(len(ids))], env={**os.environ, "GPU": str(gpu)})
+             for k, gpu in enumerate(ids)]
+    codes = [p.wait() for p in procs]
+    if any(codes):
+        raise RuntimeError(f"embedding shards failed: exit codes {codes}")
+    parts = [env.INDEX / f"dense_{k}.npy" for k in range(len(ids))]
+    vecs = np.concatenate([np.load(f) for f in parts])
+    assert len(vecs) == len(texts), (len(vecs), len(texts))
     np.save(env.INDEX / "dense.npy", vecs)
-    print(f"dense: {vecs.shape} on GPU {gpu} in {time.time() - t0:.0f}s", flush=True)
+    for f in parts:
+        f.unlink()
+    print(f"dense: {vecs.shape} on GPUs {ids} in {time.time() - t0:.0f}s", flush=True)
+
+
+def stage_embed(cfg: dict, args) -> None:
+    """One shard of the chunk embeddings on one GPU (started by `index`); contiguous slices keep the order."""
+    import numpy as np
+    import pandas as pd
+
+    from core import data
+    from core.search import embed_texts
+
+    e = cfg["embed"]
+    gpu, util = env.pick_gpu(need_mib=e["need_mib"])
+    util = min(util, e["gpu_util"])
+    env.use_gpu(gpu)
+    texts = chunk_texts(pd.read_parquet(env.DATA / "chunks.parquet"))
+    size = -(-len(texts) // args.shards)
+    part = texts[args.shard * size:(args.shard + 1) * size]
+    t0 = time.time()
+    log = (lambda m: print(f"[shard {args.shard}] {m}", flush=True))
+    vecs = embed_texts(e["model"], part, util, max_tokens=e["max_len"], log=log)
+    np.save(env.INDEX / f"dense_{args.shard}.npy", vecs)
+    log(f"{len(part)} chunks on GPU {gpu} in {time.time() - t0:.0f}s")
+    if args.shard == 0:
+        qs = data.load_questions(env.FB)
+        q = embed_texts(e["model"], [x["question"] for x in qs], util, max_tokens=e["max_len"],
+                        instruction=e["query_instruction"])
+        np.save(env.INDEX / "queries.npy", q)
 
 
 # ---------------------------------------------------------------- search
 
 def stage_search(cfg: dict, args) -> None:
+    """Candidates per question and configuration on the CPU; every reranker pair scored in one vLLM run."""
     import numpy as np
     import pandas as pd
 
     from core import data, metrics
-    from core.search import BM25, Encoder, Reranker, rrf, top_k
+    from core.search import BM25, rerank_scores, rrf, top_k
 
-    s, e, rr_cfg = cfg["search"], cfg["embed"], cfg["rerank"]
+    s, rr_cfg = cfg["search"], cfg["rerank"]
     chunks = pd.read_parquet(env.DATA / "chunks.parquet")
     texts = chunk_texts(chunks)
     keys = [f"{d}:{p}:{k}" for d, p, k in zip(chunks.doc_name, chunks.page, chunks.part)]
@@ -173,55 +218,53 @@ def stage_search(cfg: dict, args) -> None:
     company = chunks.company.to_numpy()
     doc = chunks.doc_name.to_numpy()
     period = chunks.period.astype(str).to_numpy()
-
-    gpu, _ = env.pick_gpu(need_mib=e["need_mib"] + rr_cfg["need_mib"])
-    env.use_gpu(gpu)
-    import torch
-    dense = torch.from_numpy(np.load(env.INDEX / "dense.npy")).cuda()
+    dense = np.load(env.INDEX / "dense.npy").astype(np.float32)
     bm = BM25.load(env.INDEX / "bm25")
-    enc = Encoder(e["model"], max_len=e["max_len"], batch=e["batch"])
-    rer = Reranker(rr_cfg["model"], rr_cfg["instruction"], max_len=rr_cfg["max_len"], batch=rr_cfg["batch"])
-
     qs = data.load_questions(env.FB)[: args.limit or None]
-    qvecs = torch.from_numpy(enc.encode([q["question"] for q in qs], instruction=e["query_instruction"])).cuda()
+    qvecs = np.load(env.INDEX / "queries.npy").astype(np.float32)[: len(qs)]
     K, depth, top_n = max(s["k"]), s["depth"], rr_cfg["top_n"]
+
     t0 = time.time()
-    rows = []
+    cands, extra = [], []
     for q, qv in zip(qs, qvecs):
-        bm_s = bm.scores(q["question"])
-        de_s = (dense @ qv).float().cpu().numpy()
+        bm_s, de_s = bm.scores(q["question"]), dense @ qv
         found, years = data.detect_companies(q["question"]), data.detect_years(q["question"])
         co = np.isin(company, found) if found else None
         co_yr = co
         if co is not None and years:
             m = co & np.isin(period, years)
             co_yr = m if m.any() else co
-        cache: dict[int, float] = {}
 
         def hybrid(mask):
             return rrf([top_k(bm_s, depth, mask), top_k(de_s, depth, mask)], s["rrf_k"])
 
-        def rerank(cands):
-            head = cands[:top_n]
-            todo = [i for i in head if i not in cache]
-            for i, sc in zip(todo, rer.score(q["question"], [texts[i] for i in todo])):
-                cache[i] = sc
-            return sorted(head, key=lambda i: -cache[i]) + cands[top_n:]
-
-        runs = {
-            "bm25": top_k(bm_s, K),
-            "dense": top_k(de_s, K),
-            "hybrid": hybrid(None),
-            "hybrid+company": hybrid(co),
-            "hybrid+company+rerank": rerank(hybrid(co)),
-            "hybrid+company+year+rerank": rerank(hybrid(co_yr)),
+        cands.append({
+            "bm25": top_k(bm_s, K), "dense": top_k(de_s, K), "hybrid": hybrid(None), "hybrid+company": hybrid(co),
+            "hybrid+company+rerank": hybrid(co), "hybrid+company+year+rerank": hybrid(co_yr),
             # scoped settings use the question's labels, as if the user had picked the company or filing
-            "scoped-company: hybrid+rerank": rerank(hybrid(company == q["company"])),
-            "scoped-filing: hybrid+rerank": rerank(hybrid(doc == q["doc_name"])),
-        }
+            "scoped-company: hybrid+rerank": hybrid(company == q["company"]),
+            "scoped-filing: hybrid+rerank": hybrid(doc == q["doc_name"])})
+        extra.append({"detected": found, "years": years})
+    print(f"candidates for {len(qs)} questions in {time.time() - t0:.0f}s", flush=True)
+
+    reranked = [n for n in cands[0] if n.endswith("rerank")]
+    pairs = sorted({(qi, i) for qi, c in enumerate(cands) for n in reranked for i in c[n][:top_n]})
+    gpu, util = env.pick_gpu(need_mib=rr_cfg["need_mib"])
+    util = min(util, rr_cfg["gpu_util"])
+    env.use_gpu(gpu)
+    t1 = time.time()
+    scores = rerank_scores(rr_cfg["model"], [(qs[qi]["question"], texts[i]) for qi, i in pairs],
+                           rr_cfg["instruction"], util, max_tokens=rr_cfg["max_len"])
+    score = dict(zip(pairs, scores))
+    print(f"reranked {len(pairs)} pairs on GPU {gpu} in {time.time() - t1:.0f}s", flush=True)
+
+    rows = []
+    for qi, (q, c, x) in enumerate(zip(qs, cands, extra)):
+        runs = {n: (sorted(r[:top_n], key=lambda i: -score[(qi, i)]) + r[top_n:]) if n in reranked else r
+                for n, r in c.items()}
         gold = gold_pages(q)
         rows.append({"id": q["financebench_id"], "question": q["question"], "company": q["company"],
-                     "doc_name": q["doc_name"], "detected": found, "years": years, "gold": gold,
+                     "doc_name": q["doc_name"], **x, "gold": gold,
                      "page_rank": {n: metrics.first_hit([page_of[i] for i in r[:K]], set(map(tuple, gold)))
                                    for n, r in runs.items()},
                      "doc_rank": {n: metrics.first_hit([doc[i] for i in r[:K]], {g[0] for g in gold})
@@ -229,7 +272,7 @@ def stage_search(cfg: dict, args) -> None:
                      "top": {n: [keys[i] for i in r[:K]] for n, r in runs.items()}})
     write_jsonl(env.RAW / "search.jsonl", rows)
 
-    summary = {"questions": len(rows), "seconds": round(time.time() - t0, 1), "configs": {}}
+    summary = {"questions": len(rows), "rerank_pairs": len(pairs), "seconds": round(time.time() - t0, 1), "configs": {}}
     for name in rows[0]["top"]:
         pr = [r["page_rank"][name] for r in rows]
         dr = [r["doc_rank"][name] for r in rows]
@@ -386,7 +429,7 @@ def load_cfg(path) -> dict:
     return cfg
 
 
-STAGES = {"prep": stage_prep, "index": stage_index, "search": stage_search, "gen": stage_gen,
+STAGES = {"prep": stage_prep, "index": stage_index, "embed": stage_embed, "search": stage_search, "gen": stage_gen,
           "grade": stage_grade, "sheet": stage_sheet, "agree": stage_agree, "report": stage_report}
 
 
@@ -397,6 +440,8 @@ def main() -> None:
     ap.add_argument("--ctx", default="retrieved", choices=["retrieved", "gold"])
     ap.add_argument("--limit", type=int, default=0, help="first N questions only (smoke runs)")
     ap.add_argument("--n", type=int, default=30, help="sample size for the hand-grading sheet")
+    ap.add_argument("--shard", type=int, default=0, help="embed: which slice of the chunks")
+    ap.add_argument("--shards", type=int, default=1, help="embed: how many slices")
     args = ap.parse_args()
     env.set_defaults()
     cfg = load_cfg(env.BASE / args.cfg)

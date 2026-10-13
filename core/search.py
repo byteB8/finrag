@@ -63,74 +63,51 @@ class BM25:
         return np.asarray(self.r.get_scores(q[0]), dtype=np.float32)
 
 
-# ---------------------------------------------------------------- dense encoder and reranker (GPU)
+# ---------------------------------------------------------------- embedding and reranking on vLLM (GPU)
+# Both models run through vLLM's pooling runner, which packs sequences without padding; a plain
+# transformers forward pass over the same 111k chunks ran at about a quarter of the GPU's throughput.
 
-class Encoder:
-    """Qwen3-Embedding: last-token pooling (left padding), L2-normalised; queries carry an instruction."""
-
-    def __init__(self, name: str, max_len: int = 1024, batch: int = 32):
-        import torch
-        from transformers import AutoModel, AutoTokenizer
-        self.torch = torch
-        self.tok = AutoTokenizer.from_pretrained(name, padding_side="left")
-        self.model = AutoModel.from_pretrained(name, dtype=torch.float16).cuda().eval()
-        self.max_len, self.batch = max_len, batch
-        ids = self.tok("a")["input_ids"]
-        eos = self.tok.convert_tokens_to_ids("<|endoftext|>")
-        self.suffix = "" if ids[-1] == eos else "<|endoftext|>"   # the pooled token must be the end-of-text token
-
-    def encode(self, texts: list[str], instruction: str | None = None, log_every: int = 0) -> np.ndarray:
-        torch = self.torch
-        if instruction:
-            texts = [f"Instruct: {instruction}\nQuery:{t}" for t in texts]
-        texts = [t + self.suffix for t in texts]
-        order = np.argsort([-len(t) for t in texts], kind="stable")   # longest first: a too-big batch fails early
-        out = None
-        for b, i in enumerate(range(0, len(texts), self.batch)):
-            idx = order[i:i + self.batch]
-            enc = self.tok([texts[j] for j in idx], padding=True, truncation=True, max_length=self.max_len,
-                           return_tensors="pt").to("cuda")
-            with torch.inference_mode():
-                h = self.model(**enc).last_hidden_state[:, -1]
-            emb = torch.nn.functional.normalize(h.float(), dim=-1).cpu().numpy().astype(np.float16)
-            if out is None:
-                out = np.zeros((len(texts), emb.shape[1]), dtype=np.float16)
-            out[idx] = emb
-            if log_every and b % log_every == 0:
-                print(f"  encoded {min(i + self.batch, len(texts))}/{len(texts)}", flush=True)
-        return out
+EOT = "<|endoftext|>"   # Qwen3-Embedding pools the hidden state of this final token
 
 
-class Reranker:
-    """Qwen3-Reranker: P("yes") for an instruction / query / document prompt, read from the last position."""
+def embed_texts(name: str, texts: list[str], util: float, max_tokens: int = 2048,
+                instruction: str | None = None, slice_size: int = 8192, log=None) -> np.ndarray:
+    """L2-normalised Qwen3-Embedding vectors (float16). Queries carry an instruction; documents do not."""
+    from transformers import AutoTokenizer
+    from vllm import LLM
 
-    PREFIX = ("<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the "
-              "Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n")
-    SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+    tok = AutoTokenizer.from_pretrained(name)
+    eot = tok.convert_tokens_to_ids(EOT)
+    llm = LLM(model=name, runner="pooling", dtype="float16", gpu_memory_utilization=util,
+              max_model_len=max_tokens, seed=0)
+    if instruction:
+        texts = [f"Instruct: {instruction}\nQuery:{t}" for t in texts]
+    parts = []
+    for i in range(0, len(texts), slice_size):
+        ids = tok(texts[i:i + slice_size], add_special_tokens=False)["input_ids"]
+        prompts = [{"prompt_token_ids": x[: max_tokens - 1] + [eot]} for x in ids]
+        v = np.asarray([r.outputs.embedding for r in llm.embed(prompts, use_tqdm=False)], dtype=np.float32)
+        parts.append((v / np.linalg.norm(v, axis=1, keepdims=True)).astype(np.float16))
+        if log:
+            log(f"  embedded {min(i + slice_size, len(texts))}/{len(texts)}")
+    return np.concatenate(parts)
 
-    def __init__(self, name: str, instruction: str, max_len: int = 2048, batch: int = 16):
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-        self.torch = torch
-        self.tok = AutoTokenizer.from_pretrained(name, padding_side="left")
-        self.model = AutoModelForCausalLM.from_pretrained(name, dtype=torch.float16).cuda().eval()
-        self.instruction, self.max_len, self.batch = instruction, max_len, batch
-        self.yes = self.tok.convert_tokens_to_ids("yes")
-        self.no = self.tok.convert_tokens_to_ids("no")
-        self.pre = self.tok.encode(self.PREFIX, add_special_tokens=False)
-        self.suf = self.tok.encode(self.SUFFIX, add_special_tokens=False)
 
-    def score(self, query: str, docs: list[str]) -> list[float]:
-        torch = self.torch
-        pairs = [f"<Instruct>: {self.instruction}\n<Query>: {query}\n<Document>: {d}" for d in docs]
-        out: list[float] = []
-        for i in range(0, len(pairs), self.batch):
-            enc = self.tok(pairs[i:i + self.batch], padding=False, truncation="longest_first",
-                           return_attention_mask=False, max_length=self.max_len - len(self.pre) - len(self.suf))
-            ids = [self.pre + x + self.suf for x in enc["input_ids"]]
-            batch = self.tok.pad({"input_ids": ids}, padding=True, return_tensors="pt").to("cuda")
-            with torch.inference_mode():
-                logits = self.model(**batch, logits_to_keep=1).logits[:, -1, :]
-            pair = torch.stack([logits[:, self.no], logits[:, self.yes]], dim=1).float()
-            out.extend(torch.log_softmax(pair, dim=1)[:, 1].exp().tolist())
-        return out
+RERANK_PREFIX = ("<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the "
+                 "Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n")
+RERANK_SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+
+
+def rerank_scores(name: str, pairs: list[tuple[str, str]], instruction: str, util: float,
+                  max_tokens: int = 2048) -> list[float]:
+    """P("yes") from Qwen3-Reranker for each (query, document) pair, loaded as a two-token classifier
+    (the "no"/"yes" rows of its LM head), as in the model card's vLLM recipe."""
+    from vllm import LLM
+
+    llm = LLM(model=name, runner="pooling", dtype="float16", gpu_memory_utilization=util,
+              max_model_len=max_tokens, seed=0,
+              hf_overrides={"architectures": ["Qwen3ForSequenceClassification"],
+                            "classifier_from_token": ["no", "yes"], "is_original_qwen3_reranker": True})
+    queries = [f"{RERANK_PREFIX}<Instruct>: {instruction}\n<Query>: {q}\n" for q, _ in pairs]
+    docs = [f"<Document>: {d}{RERANK_SUFFIX}" for _, d in pairs]
+    return [r.outputs.score for r in llm.score(queries, docs, use_tqdm=False)]
