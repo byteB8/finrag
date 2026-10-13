@@ -7,6 +7,7 @@ the judge.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import random
 
@@ -44,8 +45,10 @@ def agreement(human: dict[str, str], judge: dict[str, str]) -> dict:
 
 
 def render_sheet(items: list[dict], ctx: str) -> str:
-    """`items`: dicts with id, question, reference, justification, answer, reasoning, passages [[header, text]]."""
-    data = json.dumps({"ctx": ctx, "items": items}).replace("</", "<\\/")
+    """`items`: dicts with id, question, reference, justification, answer, reasoning, passages [[header, text]].
+    Saved labels are keyed by a hash of the answers, so a regenerated sheet never shows stale labels."""
+    version = hashlib.sha1(json.dumps([i["answer"] for i in items]).encode()).hexdigest()[:10]
+    data = json.dumps({"ctx": ctx, "version": version, "items": items}).replace("</", "<\\/")
     return _PAGE.replace("__CTX__", ctx).replace("__N__", str(len(items))).replace("__DATA__", data)
 
 
@@ -90,7 +93,7 @@ The judge's verdicts are hidden. Labels save in this browser as you go; export w
 <script id="data" type="application/json">__DATA__</script>
 <script>
 const DATA = JSON.parse(document.getElementById("data").textContent);
-const KEY = "finrag-labels-" + DATA.ctx;
+const KEY = "finrag-labels-" + DATA.ctx + "-" + DATA.version;
 let state = { labels: {}, notes: {} };
 try { state = Object.assign(state, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} progress(); };
@@ -124,7 +127,7 @@ DATA.items.forEach((it, i) => {
   cards.append(c);
 });
 progress();
-const payload = () => JSON.stringify({ ctx: DATA.ctx, labels: state.labels, notes: state.notes }, null, 1);
+const payload = () => JSON.stringify({ ctx: DATA.ctx, version: DATA.version, labels: state.labels, notes: state.notes }, null, 1);
 document.getElementById("export").onclick = () => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([payload()], { type: "application/json" }));

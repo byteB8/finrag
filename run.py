@@ -323,6 +323,8 @@ def stage_gen(cfg: dict, args) -> None:
 
     g = cfg["gen"]
     qs = data.load_questions(env.FB)[: args.limit or None]
+    if args.ids:
+        qs = [q for q in qs if q["financebench_id"] in args.ids.split(",")]
     passages = contexts(cfg, args.ctx, qs)
     gpu, util = env.pick_gpu(need_mib=g["need_mib"])
     env.use_gpu(gpu)
@@ -439,6 +441,7 @@ def main() -> None:
     ap.add_argument("--ctx", default="retrieved", choices=["retrieved", "gold"])
     ap.add_argument("--limit", type=int, default=0, help="first N questions only (smoke runs)")
     ap.add_argument("--n", type=int, default=30, help="sample size for the hand-grading sheet")
+    ap.add_argument("--ids", default="", help="gen: only these comma-separated question ids (debugging)")
     ap.add_argument("--shard", type=int, default=0, help="embed: which slice of the chunks")
     ap.add_argument("--shards", type=int, default=1, help="embed: how many slices")
     args = ap.parse_args()

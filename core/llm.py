@@ -5,25 +5,27 @@ import json
 
 
 def make_llm(model: str, max_model_len: int, util: float, **kw):
+    """No whitespace between JSON tokens in constrained output. With it allowed, greedy decoding sometimes
+    emitted newlines/tabs until the token limit after a complete field (4-14 of 150 answers per run).
+    vLLM 0.31 reads this only from the engine-level config, which also needs an explicit backend; the
+    per-request `StructuredOutputsParams.disable_any_whitespace` is accepted but ignored."""
     from vllm import LLM
     return LLM(model=model, max_model_len=max_model_len, gpu_memory_utilization=util, seed=0,
-               enable_prefix_caching=True, **kw)
+               enable_prefix_caching=True,
+               structured_outputs_config={"backend": "xgrammar", "disable_any_whitespace": True}, **kw)
 
 
 def json_params(schema: dict, max_tokens: int, temperature: float = 0.0):
-    """Sampling parameters whose output must match `schema` (the API was renamed across vLLM versions).
-
-    Whitespace between JSON tokens is disallowed: with it allowed, greedy decoding sometimes emitted
-    "\\r\\n  " until the token limit after a complete field (14 of 150 answers in one run)."""
+    """Sampling parameters whose output must match `schema` (the API was renamed across vLLM versions)."""
     from vllm import SamplingParams
     try:
         from vllm.sampling_params import StructuredOutputsParams
         return SamplingParams(temperature=temperature, max_tokens=max_tokens,
-                              structured_outputs=StructuredOutputsParams(json=schema, disable_any_whitespace=True))
+                              structured_outputs=StructuredOutputsParams(json=schema))
     except ImportError:
         from vllm.sampling_params import GuidedDecodingParams
         return SamplingParams(temperature=temperature, max_tokens=max_tokens,
-                              guided_decoding=GuidedDecodingParams(json=schema, disable_any_whitespace=True))
+                              guided_decoding=GuidedDecodingParams(json=schema))
 
 
 def chat(llm, conversations: list[list[dict]], params, thinking: bool = False) -> list[dict]:
