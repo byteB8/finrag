@@ -14,3 +14,6 @@ runs/
 
 # per-question outputs: copied back by sync.sh pull, too large to commit
 results/raw/
+
+# hand-grading pages embed FinanceBench text; the labels made from them are committed
+results/review/sheet_*.html
