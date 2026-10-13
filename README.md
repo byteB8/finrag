@@ -42,13 +42,27 @@ Results, with 95% bootstrap intervals over questions: [`results/RESULTS.md`](res
 
 LLM-judge numbers are not directly comparable with the paper's human grades; see the judge check.
 
+## Service
+
+`serve.sh up` starts three vLLM model servers (generation on one GPU; embedding and reranking on the other,
+OpenAI-compatible, localhost only) and a FastAPI app that does retrieval in memory and calls them:
+
+- `POST /ask` `{"question": "...", "company": null}` returns the answer, the cited filings and pages with excerpts,
+  an `abstained` flag, citation and number checks, and per-stage timings.
+- `POST /ask/stream`: the same, as Server-Sent Events (retrieval, then answer tokens, then the result).
+- `GET /health`.
+
+`bench.py` measures latency (sequential and concurrent); see the report's latency section.
+
 ## Running it
 
 On a Linux machine with an NVIDIA GPU (16 GB is enough):
 
 ```bash
 ./setup.sh                 # uv, Python 3.11, vLLM, model weights, FinanceBench
-./batch.sh                 # prep -> index -> search -> gen -> grade -> report
+./batch.sh                 # prep -> index -> search -> gen -> grade -> abstention -> report
+./serve.sh up              # model servers + HTTP API on 127.0.0.1:8010 (/docs for the OpenAPI page)
+python bench.py            # API latency, sequential and concurrent
 python test.py             # unit tests (no GPU needed)
 ```
 

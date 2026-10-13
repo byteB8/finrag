@@ -130,6 +130,17 @@ def render(results: Path, fb_results: Path | None = None) -> str:
                 "numbers, not a hallucination rate.", "",
                 "| run | correct | incorrect | refusal | says info missing | valid citations | with numbers not in cited text |",
                 "|---|---|---|---|---|---|---|", *rows, ""]
+    path = results / "latency.json"
+    if path.exists():
+        lat = json.loads(path.read_text())
+        seq, conc = lat["sequential"], lat["concurrent"]
+        out += ["## Latency (HTTP API)", "",
+                f"`serve.sh up` + `bench.py`: {lat['questions']} questions, one at a time, then {conc['clients']} "
+                "concurrent clients. Generation on one RTX A4000; embedding and reranking share the other.", "",
+                "| stage | p50 ms | p95 ms |", "|---|---|---|",
+                *[f"| {k.removesuffix('_ms')} | {seq['p50_ms'][k]} | {seq['p95_ms'][k]} |" for k in seq["p50_ms"]],
+                "", f"Concurrent: {conc['questions_per_s']} questions/s; wall time p50 {conc['wall_p50_ms']} ms, "
+                f"p95 {conc['wall_p95_ms']} ms.", ""]
     ab_rows = abstention(results)
     if ab_rows:
         out += ["## Abstention", "",

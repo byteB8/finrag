@@ -1,0 +1,28 @@
+# The service started by serve.sh: three vLLM model servers (OpenAI-compatible, localhost only) and the API.
+# Embedding and reranking share one GPU, generation has the other. Servers on one GPU start one at a time.
+
+[api]
+port = 8010
+cfg = "configs/mvp.toml"                # embedding / rerank / prompt settings, as in the offline runs
+search = "dense+company+year+rerank"    # retrieval configuration served by the API
+
+[servers.rerank]
+gpu = 1
+port = 8013
+args = ["Qwen/Qwen3-Reranker-0.6B", "--served-model-name", "rerank", "--runner", "pooling", "--dtype", "float16",
+        "--max-model-len", "2048", "--gpu-memory-utilization", "0.25",
+        "--hf-overrides", '{"architectures": ["Qwen3ForSequenceClassification"], "classifier_from_token": ["no", "yes"], "is_original_qwen3_reranker": true}']
+
+[servers.embed]
+gpu = 1
+port = 8012
+args = ["Qwen/Qwen3-Embedding-0.6B", "--served-model-name", "embed", "--runner", "pooling", "--dtype", "float16",
+        "--max-model-len", "1024", "--gpu-memory-utilization", "0.2"]
+
+[servers.gen]
+gpu = 0
+port = 8011
+args = ["Qwen/Qwen3.5-4B", "--served-model-name", "gen", "--max-model-len", "16384", "--max-num-seqs", "32",
+        "--gpu-memory-utilization", "0.85", "--enable-prefix-caching",
+        "--limit-mm-per-prompt", '{"image": 0, "video": 0}',
+        "--structured-outputs-config", '{"backend": "guidance", "disable_any_whitespace": true}']
