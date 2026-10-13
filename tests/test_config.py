@@ -18,6 +18,7 @@ class Config(unittest.TestCase):
     def test_run_labels(self):
         self.assertEqual(report.run_label("retrieved"), "retrieved chunks, prompt v1")
         self.assertEqual(report.run_label("gold_v2"), "labelled evidence pages (oracle), prompt v2")
+        self.assertEqual(report.run_label("retrieved_prefix"), "retrieved chunks, prompt v1, before the decoding-loop fixes")
 
 
 if __name__ == "__main__":

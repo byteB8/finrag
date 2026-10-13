@@ -33,6 +33,8 @@ def run_label(name: str) -> str:
     """retrieved -> 'retrieved chunks'; gold_v2 -> 'labelled evidence pages (oracle), prompt v2'."""
     ctx, _, tag = name.partition("_")
     label = {"retrieved": "retrieved chunks", "gold": "labelled evidence pages (oracle)"}.get(ctx, ctx)
+    if tag == "prefix":
+        return f"{label}, prompt v1, before the decoding-loop fixes"
     return f"{label}, prompt {tag}" if tag else f"{label}, prompt v1"
 
 
@@ -76,10 +78,13 @@ def render(results: Path, fb_results: Path | None = None) -> str:
         if path.exists():
             a = json.loads(path.read_text())
             c = a["correct_rate"]
+            b = a["binary"]
             out += ["## Judge check", "",
-                    f"On {a['n']} randomly sampled answers ({run_label(path.stem[len('agreement_'):])}), graded blind by hand, the judge agreed on "
-                    f"{a['agree']} (Cohen's kappa {a['kappa']}). Share graded correct on that sample: by hand "
-                    f"{100 * c['human']:.1f}%, by the judge {100 * c['judge']:.1f}%.", ""]
+                    f"On {a['n']} randomly sampled answers ({run_label(path.stem[len('agreement_'):])}), graded blind by hand, "
+                    f"the judge agreed on correct vs not correct for {b['agree']} (Cohen's kappa {b['kappa']}); on all "
+                    f"three verdicts for {a['agree']} (kappa {a['kappa']}; the hand grades marked refusals as incorrect). "
+                    f"Share graded correct on that sample: by hand {100 * c['human']:.1f}%, by the judge "
+                    f"{100 * c['judge']:.1f}%.", ""]
     if fb_results is not None and fb_results.exists():
         base = paper_baselines(fb_results)
         if base:

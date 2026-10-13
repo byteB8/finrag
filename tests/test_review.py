@@ -28,6 +28,12 @@ class Agreement(unittest.TestCase):
         self.assertEqual(r["confusion"]["incorrect"]["correct"], 1)
         self.assertEqual(r["disagreements"], [{"id": "b", "human": "incorrect", "judge": "correct"}])
         self.assertAlmostEqual(r["correct_rate"]["judge"], 2 / 3)
+        # b: human incorrect vs judge correct is a binary disagreement; c: refusal vs refusal agrees
+        self.assertEqual(r["binary"]["agree"], 2)
+
+    def test_binary_agreement_ignores_refusal_vs_incorrect(self):
+        r = review.agreement({"a": "incorrect", "b": "correct"}, {"a": "refusal", "b": "correct"})
+        self.assertEqual((r["agree"], r["binary"]["agree"], r["binary"]["kappa"]), (1, 2, 1.0))
 
 
 class Sheet(unittest.TestCase):

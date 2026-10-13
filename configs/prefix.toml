@@ -1,0 +1,4 @@
+# The retrieved-context v1 run before the two decoding-loop fixes (outputs kept for the judge check:
+# the user hand-graded 30 of these answers). Generated at commit 1be0c6e (14:30 run).
+base = "configs/mvp.toml"
+tag = "_prefix"

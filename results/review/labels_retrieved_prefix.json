@@ -1,0 +1,42 @@
+{
+ "ctx": "retrieved",
+ "labels": {
+  "financebench_id_01490": "correct",
+  "financebench_id_00705": "correct",
+  "financebench_id_02981": "correct",
+  "financebench_id_00394": "incorrect",
+  "financebench_id_00494": "correct",
+  "financebench_id_06655": "correct",
+  "financebench_id_00563": "incorrect",
+  "financebench_id_01964": "correct",
+  "financebench_id_00438": "incorrect",
+  "financebench_id_04735": "incorrect",
+  "financebench_id_00941": "correct",
+  "financebench_id_00299": "incorrect",
+  "financebench_id_00540": "incorrect",
+  "financebench_id_03718": "correct",
+  "financebench_id_03471": "correct",
+  "financebench_id_00476": "correct",
+  "financebench_id_01091": "incorrect",
+  "financebench_id_00552": "correct",
+  "financebench_id_03473": "incorrect",
+  "financebench_id_00460": "correct",
+  "financebench_id_00606": "incorrect",
+  "financebench_id_01009": "correct",
+  "financebench_id_04784": "correct",
+  "financebench_id_01328": "correct",
+  "financebench_id_01346": "correct",
+  "financebench_id_00839": "incorrect",
+  "financebench_id_00222": "incorrect",
+  "financebench_id_00601": "incorrect",
+  "financebench_id_00216": "incorrect",
+  "financebench_id_01290": "incorrect"
+ },
+ "notes": {
+  "financebench_id_06655": "missed the decimal value by a slight margin, 93.68 days instead of 93.86",
+  "financebench_id_00476": "partially incorrect, could have told there are none such.",
+  "financebench_id_01091": "partially correct, misses 2018 and 2019 crash events explicitly.",
+  "financebench_id_03473": "output format seems json.",
+  "financebench_id_00460": "partially incorrect, could have mentioned number."
+ }
+}

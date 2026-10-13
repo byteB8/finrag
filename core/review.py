@@ -33,10 +33,16 @@ def agreement(human: dict[str, str], judge: dict[str, str]) -> dict:
     h = [human[i] for i in ids]
     j = [judge[i] for i in ids]
     n = len(ids)
+    hb = ["correct" if x == "correct" else "not correct" for x in h]
+    jb = ["correct" if y == "correct" else "not correct" for y in j]
     return {
         "n": n,
         "agree": sum(x == y for x, y in zip(h, j)),
         "kappa": round(cohen_kappa(h, j), 3) if n else None,
+        # correct vs not correct: what accuracy depends on, and robust to graders who fold refusals into
+        # "incorrect" (refusal is read from the model's own `answerable` flag instead)
+        "binary": {"agree": sum(x == y for x, y in zip(hb, jb)),
+                   "kappa": round(cohen_kappa(hb, jb, labels=("correct", "not correct")), 3) if n else None},
         "confusion": {hv: {jv: sum(x == hv and y == jv for x, y in zip(h, j)) for jv in VERDICTS} for hv in VERDICTS},
         "correct_rate": {"human": sum(x == "correct" for x in h) / n if n else None,
                          "judge": sum(y == "correct" for y in j) / n if n else None},
