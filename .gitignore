@@ -20,3 +20,6 @@ results/review/sheet_*.html
 
 # private lab notebook (local only)
 LAB_NOTEBOOK.md
+
+# summaries of superseded runs (the committed history keeps them)
+results/old_*/
