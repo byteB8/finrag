@@ -1,0 +1,355 @@
+"""Pipeline entry point: one stage per call, settings from a TOML config (configs/mvp.toml by default).
+
+    python run.py prep                  parse the PDFs, chunk every page, check the evidence labels
+    python run.py index                 BM25 index and dense embeddings of every chunk
+    python run.py search                retrieval for each question under each configuration, scored
+    python run.py gen --ctx retrieved   answers from the top retrieved chunks (--ctx gold: the labelled pages)
+    python run.py grade --ctx retrieved verdicts from an LLM judge against the reference answers
+    python run.py report                results/RESULTS.md from the saved scores
+
+Started detached by job.sh. Every process title is pinned to PROC_TITLE (default `python run.py`), so on
+the shared server ps and nvidia-smi show a generic name instead of vLLM's EngineCore/worker titles.
+"""
+import os
+
+
+def _pin_process_title() -> None:
+    title = os.environ.get("PROC_TITLE", "python run.py")
+    try:
+        import setproctitle
+    except ImportError:
+        return
+    original = setproctitle.setproctitle
+    setproctitle.setproctitle = lambda *_args, **_kwargs: original(title)
+    original(title)
+
+
+# Top level on purpose: spawned child processes re-import this module (as __mp_main__) before vLLM
+# retitles them, so the patch is in place in the engine core too.
+_pin_process_title()
+
+import argparse  # noqa: E402
+import json  # noqa: E402
+import time  # noqa: E402
+import tomllib  # noqa: E402
+
+from core import env  # noqa: E402
+
+
+def write_json(path, obj) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(obj, indent=1) + "\n")
+
+
+def write_jsonl(path, rows) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        for r in rows:
+            f.write(json.dumps(r) + "\n")
+
+
+def read_jsonl(path) -> list[dict]:
+    with open(path) as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
+def gold_pages(q: dict) -> list[tuple[str, int]]:
+    return sorted({(e.get("doc_name") or e.get("evidence_doc_name"), int(e["evidence_page_num"]))
+                   for e in q["evidence"]})
+
+
+# ---------------------------------------------------------------- prep
+
+def stage_prep(cfg: dict, args) -> None:
+    from concurrent.futures import ProcessPoolExecutor
+
+    import pandas as pd
+    from transformers import AutoTokenizer
+
+    from core import data
+
+    t0 = time.time()
+    info = data.load_docinfo(env.FB)
+    pdfs = sorted((env.FB / "pdfs").glob("*.pdf"))
+    with ProcessPoolExecutor(max_workers=env.MAX_CPUS) as ex:
+        parsed = list(ex.map(data.parse_pdf, map(str, pdfs), chunksize=2))
+    rows = []
+    for pdf, pages in zip(pdfs, parsed):
+        meta = data.doc_meta(pdf.stem, info)
+        rows += [{"doc_name": pdf.stem, "page": p, **meta, "text": text} for p, text in enumerate(pages)]
+    pages_df = pd.DataFrame(rows)
+    pages_df.to_parquet(env.DATA / "pages.parquet", index=False)
+    print(f"parsed {len(pdfs)} PDFs, {len(pages_df)} pages in {time.time() - t0:.0f}s", flush=True)
+
+    # Chunk sizes in tokens of the embedding model (digits tokenize one by one, so tables run long in words).
+    tok = AutoTokenizer.from_pretrained(cfg["embed"]["model"])
+
+    def sizes_of(lines):
+        return [len(ids) for ids in tok(lines, add_special_tokens=False)["input_ids"]] if lines else []
+
+    c = cfg["chunk"]
+    chunks = []
+    for r in pages_df.itertuples(index=False):
+        meta = {"company": r.company, "doc_type": r.doc_type, "period": r.period}
+        for part, text in enumerate(data.chunk_page(r.text, c["max_tokens"], c["overlap_tokens"], sizes_of)):
+            chunks.append({"doc_name": r.doc_name, "page": r.page, "part": part, **meta,
+                           "header": data.chunk_header(meta, r.page), "text": text})
+    chunks_df = pd.DataFrame(chunks)
+    chunks_df.to_parquet(env.DATA / "chunks.parquet", index=False)
+    print(f"{len(chunks_df)} chunks in {time.time() - t0:.0f}s", flush=True)
+
+    # Does each labelled evidence passage occur on its labelled page of these PDFs?
+    text_of = {(r.doc_name, r.page): r.text for r in pages_df.itertuples(index=False)}
+    items = []
+    for q in data.load_questions(env.FB):
+        for e in q["evidence"]:
+            doc, page = e.get("doc_name") or e.get("evidence_doc_name"), int(e["evidence_page_num"])
+            here = data.evidence_overlap(e["evidence_text"], text_of.get((doc, page), ""))
+            near = max((data.evidence_overlap(e["evidence_text"], text_of.get((doc, page + o), "")), o)
+                       for o in (-2, -1, 1, 2))
+            items.append({"id": q["financebench_id"], "doc": doc, "page": page, "doc_found": (doc, 0) in text_of,
+                          "overlap": round(here, 3), "best_neighbour": {"offset": near[1], "overlap": round(near[0], 3)}})
+    n = len(items)
+    ok = sum(i["overlap"] >= 0.8 for i in items)
+    shifted = sum(i["overlap"] < 0.8 and i["best_neighbour"]["overlap"] >= 0.8 for i in items)
+    write_json(env.RESULTS / "data_check.json", {
+        "pdfs": len(pdfs), "pages": len(pages_df), "chunks": len(chunks_df),
+        "chunk_tokens": {"max": c["max_tokens"], "overlap": c["overlap_tokens"]},
+        "evidence_items": n, "on_labelled_page": ok, "on_neighbouring_page": shifted,
+        "missing_doc": sum(not i["doc_found"] for i in items), "items": items})
+    print(f"evidence on its labelled page: {ok}/{n}; on a neighbouring page instead: {shifted}", flush=True)
+
+
+# ---------------------------------------------------------------- index
+
+def chunk_texts(chunks) -> list[str]:
+    return (chunks["header"] + "\n" + chunks["text"]).tolist()
+
+
+def stage_index(cfg: dict, args) -> None:
+    import numpy as np
+    import pandas as pd
+
+    from core.search import BM25, Encoder
+
+    chunks = pd.read_parquet(env.DATA / "chunks.parquet")
+    texts = chunk_texts(chunks)
+    env.INDEX.mkdir(parents=True, exist_ok=True)
+    t0 = time.time()
+    BM25.build(texts).save(env.INDEX / "bm25")
+    print(f"bm25: {len(texts)} chunks in {time.time() - t0:.0f}s", flush=True)
+
+    gpu, _ = env.pick_gpu(need_mib=cfg["embed"]["need_mib"])
+    env.use_gpu(gpu)
+    t0 = time.time()
+    e = cfg["embed"]
+    enc = Encoder(e["model"], max_len=e["max_len"], batch=e["batch"])
+    vecs = enc.encode(texts, log_every=100)
+    np.save(env.INDEX / "dense.npy", vecs)
+    print(f"dense: {vecs.shape} on GPU {gpu} in {time.time() - t0:.0f}s", flush=True)
+
+
+# ---------------------------------------------------------------- search
+
+def stage_search(cfg: dict, args) -> None:
+    import numpy as np
+    import pandas as pd
+
+    from core import data, metrics
+    from core.search import BM25, Encoder, Reranker, rrf, top_k
+
+    s, e, rr_cfg = cfg["search"], cfg["embed"], cfg["rerank"]
+    chunks = pd.read_parquet(env.DATA / "chunks.parquet")
+    texts = chunk_texts(chunks)
+    keys = [f"{d}:{p}:{k}" for d, p, k in zip(chunks.doc_name, chunks.page, chunks.part)]
+    page_of = list(zip(chunks.doc_name, chunks.page.astype(int)))
+    company = chunks.company.to_numpy()
+    doc = chunks.doc_name.to_numpy()
+    period = chunks.period.astype(str).to_numpy()
+
+    gpu, _ = env.pick_gpu(need_mib=e["need_mib"] + rr_cfg["need_mib"])
+    env.use_gpu(gpu)
+    import torch
+    dense = torch.from_numpy(np.load(env.INDEX / "dense.npy")).cuda()
+    bm = BM25.load(env.INDEX / "bm25")
+    enc = Encoder(e["model"], max_len=e["max_len"], batch=e["batch"])
+    rer = Reranker(rr_cfg["model"], rr_cfg["instruction"], max_len=rr_cfg["max_len"], batch=rr_cfg["batch"])
+
+    qs = data.load_questions(env.FB)[: args.limit or None]
+    qvecs = torch.from_numpy(enc.encode([q["question"] for q in qs], instruction=e["query_instruction"])).cuda()
+    K, depth, top_n = max(s["k"]), s["depth"], rr_cfg["top_n"]
+    t0 = time.time()
+    rows = []
+    for q, qv in zip(qs, qvecs):
+        bm_s = bm.scores(q["question"])
+        de_s = (dense @ qv).float().cpu().numpy()
+        found, years = data.detect_companies(q["question"]), data.detect_years(q["question"])
+        co = np.isin(company, found) if found else None
+        co_yr = co
+        if co is not None and years:
+            m = co & np.isin(period, years)
+            co_yr = m if m.any() else co
+        cache: dict[int, float] = {}
+
+        def hybrid(mask):
+            return rrf([top_k(bm_s, depth, mask), top_k(de_s, depth, mask)], s["rrf_k"])
+
+        def rerank(cands):
+            head = cands[:top_n]
+            todo = [i for i in head if i not in cache]
+            for i, sc in zip(todo, rer.score(q["question"], [texts[i] for i in todo])):
+                cache[i] = sc
+            return sorted(head, key=lambda i: -cache[i]) + cands[top_n:]
+
+        runs = {
+            "bm25": top_k(bm_s, K),
+            "dense": top_k(de_s, K),
+            "hybrid": hybrid(None),
+            "hybrid+company": hybrid(co),
+            "hybrid+company+rerank": rerank(hybrid(co)),
+            "hybrid+company+year+rerank": rerank(hybrid(co_yr)),
+            # scoped settings use the question's labels, as if the user had picked the company or filing
+            "scoped-company: hybrid+rerank": rerank(hybrid(company == q["company"])),
+            "scoped-filing: hybrid+rerank": rerank(hybrid(doc == q["doc_name"])),
+        }
+        gold = gold_pages(q)
+        rows.append({"id": q["financebench_id"], "question": q["question"], "company": q["company"],
+                     "doc_name": q["doc_name"], "detected": found, "years": years, "gold": gold,
+                     "page_rank": {n: metrics.first_hit([page_of[i] for i in r[:K]], set(map(tuple, gold)))
+                                   for n, r in runs.items()},
+                     "doc_rank": {n: metrics.first_hit([doc[i] for i in r[:K]], {g[0] for g in gold})
+                                  for n, r in runs.items()},
+                     "top": {n: [keys[i] for i in r[:K]] for n, r in runs.items()}})
+    write_jsonl(env.RAW / "search.jsonl", rows)
+
+    summary = {"questions": len(rows), "seconds": round(time.time() - t0, 1), "configs": {}}
+    for name in rows[0]["top"]:
+        pr = [r["page_rank"][name] for r in rows]
+        dr = [r["doc_rank"][name] for r in rows]
+        summary["configs"][name] = {
+            **{f"page@{k}": metrics.bootstrap_ci(metrics.hits_at(pr, k)) for k in s["k"]},
+            **{f"doc@{k}": metrics.bootstrap_ci(metrics.hits_at(dr, k)) for k in s["k"]},
+            f"mrr@{K}": metrics.bootstrap_ci(metrics.reciprocal_ranks(pr, K))}
+    det = [r["detected"] for r in rows]
+    gold_co = [r["company"] for r in rows]
+    summary["company_detection"] = {
+        "exact": sum(d == [g] for d, g in zip(det, gold_co)),
+        "includes_gold": sum(g in d for d, g in zip(det, gold_co)),
+        "none": sum(not d for d in det),
+        "wrong_only": sum(bool(d) and g not in d for d, g in zip(det, gold_co))}
+    write_json(env.RESULTS / "search.json", summary)
+    for name, m in summary["configs"].items():
+        print(f"{name:34s} page@5 {m['page@5'][0]:.3f}  page@10 {m['page@10'][0]:.3f}  doc@5 {m['doc@5'][0]:.3f}",
+              flush=True)
+
+
+# ---------------------------------------------------------------- gen and grade
+
+def contexts(cfg: dict, ctx: str, qs: list[dict]) -> list[list[tuple[str, str]]]:
+    """(header, text) passages per question: the top retrieved chunks, or the labelled evidence pages."""
+    import pandas as pd
+
+    from core import data
+    if ctx == "gold":
+        pages = pd.read_parquet(env.DATA / "pages.parquet")
+        text_of = {(r.doc_name, r.page): (r, r.text) for r in pages.itertuples(index=False)}
+        out = []
+        for q in qs:
+            ps = []
+            for d, p in gold_pages(q):
+                r, text = text_of[(d, p)]
+                ps.append((data.chunk_header({"company": r.company, "doc_type": r.doc_type, "period": r.period}, p), text))
+            out.append(ps)
+        return out
+    chunks = pd.read_parquet(env.DATA / "chunks.parquet")
+    by_key = {f"{d}:{p}:{k}": (h, t) for d, p, k, h, t in
+              zip(chunks.doc_name, chunks.page, chunks.part, chunks.header, chunks.text)}
+    found = {r["id"]: r for r in read_jsonl(env.RAW / "search.jsonl")}
+    g = cfg["gen"]
+    return [[by_key[k] for k in found[q["financebench_id"]]["top"][g["search"]][: g["contexts"]]] for q in qs]
+
+
+def stage_gen(cfg: dict, args) -> None:
+    from core import answer, data, llm
+
+    g = cfg["gen"]
+    qs = data.load_questions(env.FB)[: args.limit or None]
+    passages = contexts(cfg, args.ctx, qs)
+    gpu, util = env.pick_gpu(need_mib=g["need_mib"])
+    env.use_gpu(gpu)
+    model = llm.make_llm(g["model"], g["max_model_len"], util, limit_mm_per_prompt={"image": 0, "video": 0})
+    params = llm.json_params(answer.SCHEMA, g["max_tokens"])
+    t0 = time.time()
+    outs = llm.chat(model, [answer.build_messages(q["question"], p) for q, p in zip(qs, passages)], params,
+                    thinking=g.get("thinking", False))
+    secs = time.time() - t0
+    rows = []
+    for q, p, o in zip(qs, passages, outs):
+        parsed = llm.parse_json(o["text"])
+        rows.append({"id": q["financebench_id"], "question": q["question"], "reference": q["answer"],
+                     "answer": (parsed or {}).get("answer", o["text"]), "answerable": (parsed or {}).get("answerable"),
+                     "reasoning": (parsed or {}).get("reasoning"), "check": answer.check(parsed, len(p), p),
+                     "passages": [h for h, _ in p], **{k: o[k] for k in ("finish", "prompt_tokens", "output_tokens")}})
+    write_jsonl(env.RAW / f"gen_{args.ctx}.jsonl", rows)
+    print(f"{len(rows)} answers on GPU {gpu} in {secs:.0f}s "
+          f"({sum(r['output_tokens'] for r in rows) / secs:.0f} output tok/s)", flush=True)
+
+
+def stage_grade(cfg: dict, args) -> None:
+    from core import data, grade, llm, metrics
+
+    j = cfg["grade"]
+    rows = read_jsonl(env.RAW / f"gen_{args.ctx}.jsonl")
+    refs = {q["financebench_id"]: q for q in data.load_questions(env.FB)}
+    gpu, util = env.pick_gpu(need_mib=j["need_mib"])
+    env.use_gpu(gpu)
+    model = llm.make_llm(j["model"], j["max_model_len"], util)
+    convs = [grade.build_messages(r["question"], r["reference"], refs[r["id"]].get("justification"), r["answer"])
+             for r in rows]
+    outs = llm.chat(model, convs, llm.json_params(grade.SCHEMA, j["max_tokens"]))
+    graded = []
+    for r, o in zip(rows, outs):
+        parsed = llm.parse_json(o["text"])
+        graded.append({"id": r["id"], "verdict": grade.verdict_of(parsed), "reason": (parsed or {}).get("reason"),
+                       "judge_parsed": parsed is not None})
+    write_jsonl(env.RAW / f"grade_{args.ctx}.jsonl", graded)
+    summary = {"questions": len(graded), "judge": j["model"], "judge_unparsed": sum(not g["judge_parsed"] for g in graded)}
+    for v in grade.VERDICTS:
+        summary[v] = metrics.bootstrap_ci([g["verdict"] == v for g in graded])
+    checks = [r["check"] for r in rows]
+    summary["answers_unparsed"] = sum(not c["parsed"] for c in checks)
+    summary["valid_citations"] = sum(c["valid_citations"] for c in checks)
+    summary["with_ungrounded_numbers"] = sum(bool(c["ungrounded_numbers"]) for c in checks)
+    write_json(env.RESULTS / f"grade_{args.ctx}.json", summary)
+    print(json.dumps({k: v for k, v in summary.items()}, indent=1), flush=True)
+
+
+# ---------------------------------------------------------------- report
+
+def stage_report(cfg: dict, args) -> None:
+    from core import report
+    (env.RESULTS / "RESULTS.md").write_text(report.render(env.RESULTS))
+    print("wrote results/RESULTS.md")
+
+
+STAGES = {"prep": stage_prep, "index": stage_index, "search": stage_search, "gen": stage_gen,
+          "grade": stage_grade, "report": stage_report}
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("stage", choices=sorted(STAGES))
+    ap.add_argument("--cfg", default="configs/mvp.toml")
+    ap.add_argument("--ctx", default="retrieved", choices=["retrieved", "gold"])
+    ap.add_argument("--limit", type=int, default=0, help="first N questions only (smoke runs)")
+    args = ap.parse_args()
+    env.set_defaults()
+    with open(env.BASE / args.cfg, "rb") as f:
+        cfg = tomllib.load(f)
+    t0 = time.time()
+    STAGES[args.stage](cfg, args)
+    print(f"[{args.stage}] done in {time.time() - t0:.0f}s", flush=True)
+
+
+if __name__ == "__main__":
+    main()

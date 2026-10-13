@@ -1,0 +1,40 @@
+# MVP: one pass over the 150 FinanceBench open-source questions.
+
+[chunk]
+max_tokens = 512          # counted with the embedding model's tokenizer
+overlap_tokens = 64
+
+[embed]
+model = "Qwen/Qwen3-Embedding-0.6B"
+max_len = 1024
+batch = 32
+need_mib = 3000
+query_instruction = "Given a question about a public company, retrieve passages from its SEC filings that answer the question"
+
+[rerank]
+model = "Qwen/Qwen3-Reranker-0.6B"
+instruction = "Given a question about a public company, judge whether this passage from its SEC filings contains information that answers the question"
+top_n = 50
+max_len = 2048
+batch = 16
+need_mib = 3000
+
+[search]
+k = [1, 3, 5, 10, 20]
+depth = 100               # candidates from each retriever before fusion
+rrf_k = 60
+
+[gen]
+model = "Qwen/Qwen3.5-4B"
+search = "hybrid+company+rerank"
+contexts = 8
+max_tokens = 1024
+max_model_len = 16384
+thinking = false
+need_mib = 12000
+
+[grade]
+model = "Qwen/Qwen3-14B-AWQ"
+max_tokens = 256
+max_model_len = 8192
+need_mib = 13000
