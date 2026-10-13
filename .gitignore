@@ -17,3 +17,6 @@ results/raw/
 
 # hand-grading pages embed FinanceBench text; the labels made from them are committed
 results/review/sheet_*.html
+
+# private lab notebook (local only)
+LAB_NOTEBOOK.md
