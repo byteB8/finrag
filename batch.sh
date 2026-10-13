@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The whole MVP pass on the server, stage by stage, using both GPUs where stages are independent:
+# The whole MVP pass on the server (prep first if it has not run), using both GPUs where stages are independent:
 #   GPU 0: index -> search -> gen (retrieved chunks)      GPU 1: gen (labelled evidence pages)
 #   then grading on both GPUs once the judge weights are downloaded, then the report.
 #     setsid nohup ./batch.sh > logs/batch.log 2>&1 &
@@ -22,6 +22,7 @@ stage() {   # stage <gpu> <run.py args...>: one stage in the foreground, its out
 }
 
 if venv/bin/python test.py > logs/test.log 2>&1; then log "unit tests ok"; else log "unit tests FAILED"; fi
+[ -f data/chunks.parquet ] || stage 0 prep || exit 1
 ( stage 1 gen --ctx gold ) &
 gold=$!
 stage 0 index && stage 0 search && stage 0 gen --ctx retrieved
