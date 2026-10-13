@@ -37,7 +37,8 @@ PLAN_SCHEMA = {
 _BIN = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
         ast.Pow: operator.pow}
 _UNARY = {ast.USub: operator.neg, ast.UAdd: operator.pos}
-_FUNCS = {"abs": abs, "min": min, "max": max, "round": round, "sqrt": math.sqrt}
+# round's digit count arrives as a float (every number is evaluated as float), so it is converted back
+_FUNCS = {"abs": abs, "min": min, "max": max, "round": lambda x, n=0: round(x, int(n)), "sqrt": math.sqrt}
 
 
 def safe_eval(expression: str, names: dict[str, float]) -> float:

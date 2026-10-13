@@ -10,6 +10,8 @@ class SafeEval(unittest.TestCase):
         self.assertAlmostEqual(dpo, 365 * 29962.5 / 116520)
         self.assertAlmostEqual(calc.safe_eval("(65984 / 65398) ** (1 / 2) - 1", {}), (65984 / 65398) ** 0.5 - 1)
         self.assertEqual(calc.safe_eval("-abs(-2) + max(1, 3) + round(2.6)", {}), 4.0)
+        # the model writes round(x, 2) for "round to two decimal places"; a float digit count used to raise
+        self.assertEqual(calc.safe_eval("round(cfo / cl, 2)", {"cfo": 1283, "cl": 2000}), 0.64)
 
     def test_rejects_code_and_unknown_names(self):
         for bad in ("__import__('os')", "open('x')", "x.y", "[1, 2]", "2 ** 1000", "lambda: 1", "1 if 1 else 2"):
