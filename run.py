@@ -277,7 +277,8 @@ def stage_gen(cfg: dict, args) -> None:
     passages = contexts(cfg, args.ctx, qs)
     gpu, util = env.pick_gpu(need_mib=g["need_mib"])
     env.use_gpu(gpu)
-    model = llm.make_llm(g["model"], g["max_model_len"], util, limit_mm_per_prompt={"image": 0, "video": 0})
+    model = llm.make_llm(g["model"], g["max_model_len"], util, max_num_seqs=g["max_num_seqs"],
+                         limit_mm_per_prompt={"image": 0, "video": 0})
     params = llm.json_params(answer.SCHEMA, g["max_tokens"])
     t0 = time.time()
     outs = llm.chat(model, [answer.build_messages(q["question"], p) for q, p in zip(qs, passages)], params,
@@ -303,7 +304,7 @@ def stage_grade(cfg: dict, args) -> None:
     refs = {q["financebench_id"]: q for q in data.load_questions(env.FB)}
     gpu, util = env.pick_gpu(need_mib=j["need_mib"])
     env.use_gpu(gpu)
-    model = llm.make_llm(j["model"], j["max_model_len"], util)
+    model = llm.make_llm(j["model"], j["max_model_len"], util, max_num_seqs=j["max_num_seqs"])
     convs = [grade.build_messages(r["question"], r["reference"], refs[r["id"]].get("justification"), r["answer"])
              for r in rows]
     outs = llm.chat(model, convs, llm.json_params(grade.SCHEMA, j["max_tokens"]))

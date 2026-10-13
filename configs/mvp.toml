@@ -31,10 +31,12 @@ contexts = 8
 max_tokens = 1024
 max_model_len = 16384
 thinking = false
+max_num_seqs = 32        # hybrid linear-attention model: vLLM reserves per-sequence state for this many
 need_mib = 12000
 
 [grade]
 model = "Qwen/Qwen3-14B-AWQ"
 max_tokens = 256
 max_model_len = 8192
+max_num_seqs = 64
 need_mib = 13000
