@@ -1,0 +1,8 @@
+# Reasoning experiment, arm "unit": prompt v1 plus a rule to answer in the requested unit and rounding.
+base = "configs/dyr.toml"
+tag = "_unit"
+label = "prompt v1 + unit/rounding rule"
+experiment = {name = "reasoning", baseline = {gold = "gold", retrieved = "retrieved_dyr"}}
+
+[gen]
+prompt = "v1u"

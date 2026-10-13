@@ -22,5 +22,31 @@ class Baselines(unittest.TestCase):
             self.assertTrue(report.render(Path(d)).startswith("# Results"))
 
 
+
+class ExperimentSection(unittest.TestCase):
+    def test_test_half_hidden_until_frozen(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = Path(d)
+            (r / "raw").mkdir()
+            (r / "split.json").write_text(json.dumps({"dev": ["a", "b"], "test": ["c", "d"]}))
+            exp = {"name": "reasoning", "baseline": {"gold": "gold"}}
+            (r / "grade_gold_calc.json").write_text(json.dumps({"ctx": "gold", "label": "calc", "experiment": exp}))
+            for name, verdicts in (("gold", ["incorrect", "correct", "incorrect", "incorrect"]),
+                                   ("gold_calc", ["correct", "correct", "correct", "incorrect"])):
+                (r / "raw" / f"grade_{name}.jsonl").write_text("\n".join(
+                    json.dumps({"id": i, "verdict": v}) for i, v in zip("abcd", verdicts)))
+                (r / "raw" / f"gen_{name}.jsonl").write_text("\n".join(
+                    json.dumps({"id": i, "output_tokens": 100}) for i in "abcd"))
+            rows, frozen = report.experiment(r)
+            self.assertFalse(frozen)
+            self.assertEqual(len(rows), 1)
+            self.assertIn("dev (2)", rows[0])
+            self.assertNotIn("test", "".join(rows))
+            (r / "experiment_frozen.json").write_text("{}")
+            rows, frozen = report.experiment(r)
+            self.assertTrue(frozen)
+            self.assertEqual([("dev" in x, "test" in x) for x in rows], [(True, False), (False, True)])
+
+
 if __name__ == "__main__":
     unittest.main()

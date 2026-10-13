@@ -1,0 +1,11 @@
+# Reasoning experiment, arm "think": Qwen3.5 step-by-step reasoning before the JSON answer, with Qwen's
+# recommended thinking sampling (greedy decoding can loop in long reasoning) and a fixed seed.
+base = "configs/dyr.toml"
+tag = "_think"
+label = "prompt v1 + step-by-step reasoning"
+experiment = {name = "reasoning", baseline = {gold = "gold", retrieved = "retrieved_dyr"}}
+
+[gen]
+thinking = true
+max_tokens = 8192
+sampling = {temperature = 0.6, top_p = 0.95, top_k = 20, seed = 0}

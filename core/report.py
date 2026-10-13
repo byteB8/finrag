@@ -77,6 +77,41 @@ def abstention(results: Path) -> list[str]:
     return rows
 
 
+def _mean_tokens(results: Path, name: str) -> float | None:
+    gen = _jsonl(results / "raw" / f"gen_{name}.jsonl")
+    return sum(r["output_tokens"] for r in gen) / len(gen) if gen else None
+
+
+def experiment(results: Path) -> tuple[list[str], bool]:
+    """Experiment arms against their baselines on the frozen company split: the development half always, the
+    held-out half only after `run.py freeze` (results/experiment_frozen.json)."""
+    path = results / "split.json"
+    if not path.exists():
+        return [], False
+    split = json.loads(path.read_text())
+    frozen = (results / "experiment_frozen.json").exists()
+    rows = []
+    for gpath in sorted(results.glob("grade_*.json")):
+        g = json.loads(gpath.read_text())
+        exp = g.get("experiment") or {}
+        if not exp:
+            continue
+        name, base = gpath.stem[len("grade_"):], exp["baseline"][g["ctx"]]
+        arm, ref = _verdicts(results, name), _verdicts(results, base)
+        tok_arm, tok_ref = _mean_tokens(results, name), _mean_tokens(results, base)
+        cost = f"{tok_arm:.0f} vs {tok_ref:.0f}" if tok_arm and tok_ref else "-"
+        for part in (("dev", "test") if frozen else ("dev",)):
+            ids = [i for i in split[part] if i in arm and i in ref]
+            a = [arm[i] == "correct" for i in ids]
+            b = [ref[i] == "correct" for i in ids]
+            d = metrics.paired_diff(a, b)
+            ctx = {"gold": "evidence pages", "retrieved": "retrieved"}[g["ctx"]]
+            rows.append(f"| {g['label']} | {ctx} | {part} ({len(ids)}) | {100 * sum(b) / len(ids):.1f} | "
+                        f"{100 * sum(a) / len(ids):.1f} | {100 * d['diff']:+.1f} [{100 * d['lo']:+.1f}, "
+                        f"{100 * d['hi']:+.1f}] | {d['p']:.2f} | {cost} |")
+    return rows, frozen
+
+
 def run_label(name: str) -> str:
     """retrieved -> 'retrieved chunks'; gold_v2 -> 'labelled evidence pages (oracle), prompt v2'."""
     ctx, _, tag = name.partition("_")
@@ -116,6 +151,8 @@ def render(results: Path, fb_results: Path | None = None) -> str:
     rows = []
     for path in sorted(results.glob("grade_*.json")):
         g = json.loads(path.read_text())
+        if g.get("experiment"):
+            continue
         name = path.stem[len("grade_"):]
         gen = _jsonl(results / "raw" / f"gen_{name}.jsonl")
         missing = f"{sum(says_missing(r['answer']) for r in gen)}" if gen else "-"
@@ -141,6 +178,15 @@ def render(results: Path, fb_results: Path | None = None) -> str:
                 *[f"| {k.removesuffix('_ms')} | {seq['p50_ms'][k]} | {seq['p95_ms'][k]} |" for k in seq["p50_ms"]],
                 "", f"Concurrent: {conc['questions_per_s']} questions/s; wall time p50 {conc['wall_p50_ms']} ms, "
                 f"p95 {conc['wall_p95_ms']} ms.", ""]
+    exp_rows, frozen = experiment(results)
+    if exp_rows:
+        out += ["## Reasoning experiment (company-level dev/test split)", "",
+                "Each arm against prompt v1 on the same questions; split frozen before any arm ran "
+                "(`results/split.json`, 75 dev / 75 test questions, no company in both). "
+                + ("Arms frozen (`results/experiment_frozen.json`); the test half was revealed once, after that."
+                   if frozen else "**Development half only**: test-half results stay hidden until the arms are frozen."),
+                "", "| arm | context | half (n) | v1 correct % | arm correct % | difference [95% CI] | p | output tokens (arm vs v1) |",
+                "|---|---|---|---|---|---|---|---|", *exp_rows, ""]
     ab_rows = abstention(results)
     if ab_rows:
         out += ["## Abstention", "",

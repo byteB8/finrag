@@ -1,0 +1,8 @@
+# Reasoning experiment, arm "calc": calculator tool in two passes (core/calc.py); retrieval as configs/dyr.toml.
+base = "configs/dyr.toml"
+tag = "_calc"
+label = "prompt v1 + calculator tool"
+experiment = {name = "reasoning", baseline = {gold = "gold", retrieved = "retrieved_dyr"}}
+
+[gen]
+method = "calc"

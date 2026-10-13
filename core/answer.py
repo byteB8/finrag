@@ -25,7 +25,11 @@ Rules:
 - In "citations", list the numbers of the excerpts that contain the figures or statements you used.
 - Set "answerable" to false only when a figure the answer needs is absent from the excerpts, and then say in "answer" what is missing."""
 
-PROMPTS = {"v1": SYSTEM, "v2": SYSTEM_V2}
+# v1u: v1 plus one rule, from the unit/rounding failures in the error analysis (notebook Entry 10).
+SYSTEM_UNIT = SYSTEM + """
+- Give the answer in the unit, scale and rounding the question asks for: if it asks for a ratio rounded to two decimal places, answer like 0.01 (not 1.46%); if it asks for a percentage, answer in percent."""
+
+PROMPTS = {"v1": SYSTEM, "v2": SYSTEM_V2, "v1u": SYSTEM_UNIT}
 MAX_PASSAGES = 8   # the most excerpts any prompt carries (8 retrieved chunks; at most 3 evidence pages)
 
 SCHEMA = {

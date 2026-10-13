@@ -9,6 +9,7 @@
     python run.py sheet --ctx retrieved blind hand-grading page for a random sample (--n, default 30)
     python run.py agree --ctx retrieved judge vs hand grades (from results/review/labels_<ctx>.json)
     python run.py abstain               how often answers decline, on answerable and unanswerable questions
+    python run.py freeze                mark experiment arms final (the report then shows the held-out half)
     python run.py report                results/RESULTS.md from the saved scores
 
 --set fb (default) is the 150 FinanceBench questions; --set unans is 50 questions the corpus cannot answer
@@ -354,32 +355,55 @@ def contexts(cfg: dict, ctx: str, qs: list[dict], qset: str = "fb") -> list[list
 def stage_gen(cfg: dict, args) -> None:
     from core import answer, data, llm
 
+    from core import calc
+
     g = cfg["gen"]
+    thinking = g.get("thinking", False)
     gpu, util = env.pick_gpu(need_mib=g["need_mib"])
     util = min(util, g.get("gpu_util", util))
     env.use_gpu(gpu)
-    model = llm.make_llm(g["model"], g["max_model_len"], util, max_num_seqs=g["max_num_seqs"],
+    model = llm.make_llm(g["model"], g["max_model_len"], util, thinking=thinking, max_num_seqs=g["max_num_seqs"],
                          limit_mm_per_prompt={"image": 0, "video": 0})
-    params = llm.json_params(answer.SCHEMA, g["max_tokens"])
+    sampling = g.get("sampling", {})            # e.g. Qwen's thinking settings; greedy by default
+    params = llm.json_params(answer.SCHEMA, g["max_tokens"], **sampling)
     prompt = g.get("prompt", "v1")
     for qset in args.set.split(","):
         qs = load_set(qset)[: args.limit or None]
         if args.ids:
             qs = [q for q in qs if q["financebench_id"] in args.ids.split(",")]
         passages = contexts(cfg, args.ctx, qs, qset)
+        convs = [answer.build_messages(q["question"], p, prompt) for q, p in zip(qs, passages)]
         t0 = time.time()
-        outs = llm.chat(model, [answer.build_messages(q["question"], p, prompt) for q, p in zip(qs, passages)],
-                        params, thinking=g.get("thinking", False))
+        tools = [None] * len(qs)
+        plan_tokens = [0] * len(qs)
+        if g.get("method") == "calc":
+            # pass 1: figures and formulas (JSON); Python evaluates; pass 2 answers with the results appended
+            plan_convs = [[{"role": "system", "content": calc.PLAN_SYSTEM}, c[1]] for c in convs]
+            plans = llm.chat(model, plan_convs, llm.json_params(calc.PLAN_SCHEMA, g["max_tokens"]))
+            for k, (c, o) in enumerate(zip(convs, plans)):
+                plan = llm.parse_json(o["text"])
+                results = calc.run(plan)
+                tools[k] = {"plan": plan, "results": results}
+                plan_tokens[k] = o["output_tokens"]
+                c[1] = {"role": "user", "content": c[1]["content"] + calc.results_block(plan, results)}
+        outs = llm.chat(model, convs, params, thinking=thinking)
         secs = time.time() - t0
         rows = []
-        for q, p, o in zip(qs, passages, outs):
-            parsed = llm.parse_json(o["text"])
+        for q, p, o, tool, extra in zip(qs, passages, outs, tools, plan_tokens):
+            thought, body = llm.split_reasoning(o["text"])
+            parsed = llm.parse_json(body)
             rows.append({"id": q["financebench_id"], "question": q["question"], "reference": q.get("answer"),
-                         "answer": (parsed or {}).get("answer", o["text"]), "answerable": (parsed or {}).get("answerable"),
+                         "answer": (parsed or {}).get("answer", body), "answerable": (parsed or {}).get("answerable"),
                          "reasoning": (parsed or {}).get("reasoning"), "check": answer.check(parsed, len(p), p),
-                         "passages": [h for h, _ in p],
-                         **{k: o[k] for k in ("finish", "prompt_tokens", "output_tokens")}})
-        write_jsonl(env.RAW / f"gen_{run_name(cfg, args, qset)}.jsonl", rows)
+                         "passages": [h for h, _ in p], "finish": o["finish"], "prompt_tokens": o["prompt_tokens"],
+                         "output_tokens": o["output_tokens"] + extra,
+                         **({"thinking_chars": len(thought)} if thinking else {}), **({"tool": tool} if tool else {})})
+        name = run_name(cfg, args, qset)
+        write_jsonl(env.RAW / f"gen_{name}.jsonl", rows)
+        write_json(env.RESULTS / "gen" / f"{name}.json", {
+            "questions": len(rows), "seconds": round(secs, 1), "gpu": gpu,
+            "mean_output_tokens": round(sum(r["output_tokens"] for r in rows) / max(1, len(rows)), 1),
+            "cut_off": sum(r["finish"] == "length" for r in rows), "unparsed": sum(not r["check"]["parsed"] for r in rows)})
         print(f"{qset}: {len(rows)} answers on GPU {gpu} in {secs:.0f}s "
               f"({sum(r['output_tokens'] for r in rows) / secs:.0f} output tok/s)", flush=True)
 
@@ -402,7 +426,8 @@ def stage_grade(cfg: dict, args) -> None:
         graded.append({"id": r["id"], "verdict": grade.verdict_of(parsed), "reason": (parsed or {}).get("reason"),
                        "judge_parsed": parsed is not None})
     write_jsonl(env.RAW / f"grade_{run_name(cfg, args)}.jsonl", graded)
-    summary = {"ctx": args.ctx, "label": cfg.get("label", ""), "questions": len(graded), "judge": j["model"],
+    summary = {"ctx": args.ctx, "label": cfg.get("label", ""), "experiment": cfg.get("experiment", {}),
+               "questions": len(graded), "judge": j["model"],
                "judge_unparsed": sum(not g["judge_parsed"] for g in graded)}
     for v in grade.VERDICTS:
         summary[v] = metrics.bootstrap_ci([g["verdict"] == v for g in graded])
@@ -456,6 +481,25 @@ def stage_abstain(cfg: dict, args) -> None:
     print(json.dumps(res, indent=1), flush=True)
 
 
+# ---------------------------------------------------------------- freeze
+
+def stage_freeze(cfg: dict, args) -> None:
+    """Mark the experiment arms as final; only after this does the report show the held-out test half."""
+    import datetime
+    import subprocess
+    path = env.RESULTS / "experiment_frozen.json"
+    if path.exists():
+        print(f"already frozen: {path.read_text()}")
+        return
+    try:
+        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                                cwd=env.BASE).stdout.strip()
+    except OSError:
+        commit = ""
+    write_json(path, {"frozen_at": datetime.datetime.now().isoformat(timespec="seconds"), "commit": commit})
+    print(f"frozen: {path.read_text()}")
+
+
 # ---------------------------------------------------------------- report
 
 def stage_report(cfg: dict, args) -> None:
@@ -466,7 +510,7 @@ def stage_report(cfg: dict, args) -> None:
 
 STAGES = {"prep": stage_prep, "index": stage_index, "embed": stage_embed, "qembed": stage_qembed,
           "search": stage_search, "gen": stage_gen, "grade": stage_grade, "sheet": stage_sheet,
-          "agree": stage_agree, "abstain": stage_abstain, "report": stage_report}
+          "agree": stage_agree, "abstain": stage_abstain, "freeze": stage_freeze, "report": stage_report}
 
 
 def main() -> None:

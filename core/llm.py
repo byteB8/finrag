@@ -13,29 +13,42 @@ import json
 NATURAL_JSON = {"whitespace_flexible": False, "item_separator": ", ", "key_separator": ": "}
 
 
-def make_llm(model: str, max_model_len: int, util: float, **kw):
+def make_llm(model: str, max_model_len: int, util: float, thinking: bool = False, **kw):
+    """`thinking`: the qwen3 reasoning parser makes the JSON constraint start only after `</think>`."""
     from vllm import LLM
+    so = {"backend": "guidance", "disable_any_whitespace": True}
+    if thinking:
+        so["reasoning_parser"] = "qwen3"
     return LLM(model=model, max_model_len=max_model_len, gpu_memory_utilization=util, seed=0,
-               enable_prefix_caching=True,
-               structured_outputs_config={"backend": "guidance", "disable_any_whitespace": True}, **kw)
+               enable_prefix_caching=True, structured_outputs_config=so, **kw)
 
 
 def with_separators(schema: dict) -> dict:
     return {**schema, "x-guidance": NATURAL_JSON}
 
 
-def json_params(schema: dict, max_tokens: int, temperature: float = 0.0):
-    """Sampling parameters whose output must match `schema` (the API was renamed across vLLM versions)."""
+def json_params(schema: dict, max_tokens: int, temperature: float = 0.0, **sampling):
+    """Sampling parameters whose output must match `schema` (the API was renamed across vLLM versions).
+    `sampling`: extra SamplingParams fields (top_p, top_k, seed) for the thinking runs."""
     from vllm import SamplingParams
     schema = with_separators(schema)
     try:
         from vllm.sampling_params import StructuredOutputsParams
         return SamplingParams(temperature=temperature, max_tokens=max_tokens,
-                              structured_outputs=StructuredOutputsParams(json=schema))
+                              structured_outputs=StructuredOutputsParams(json=schema), **sampling)
     except ImportError:
         from vllm.sampling_params import GuidedDecodingParams
         return SamplingParams(temperature=temperature, max_tokens=max_tokens,
-                              guided_decoding=GuidedDecodingParams(json=schema))
+                              guided_decoding=GuidedDecodingParams(json=schema), **sampling)
+
+
+def split_reasoning(text: str) -> tuple[str, str]:
+    """(reasoning, rest) for output that may carry a thinking section; the chat template can open <think> in the
+    prompt, so the reasoning is everything before the last </think>."""
+    if "</think>" not in text:
+        return "", text
+    head, _, tail = text.rpartition("</think>")
+    return head.replace("<think>", "").strip(), tail.strip()
 
 
 def chat(llm, conversations: list[list[dict]], params, thinking: bool = False) -> list[dict]:

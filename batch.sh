@@ -55,5 +55,22 @@ for c in mvp v2 hyr dyr; do
   tag=$([ $c = mvp ] && echo "" || echo "_$c")
   stage results/abstain_retrieved$tag.json 0 abstain --cfg configs/$c.toml
 done
+# Reasoning experiment (configs/calc, think, unit): answers on both contexts, then grading. The report shows
+# only the development half until `run.py freeze`.
+( stage $R/gen_gold_think.jsonl 1 gen --ctx gold --cfg configs/think.toml
+  stage $R/gen_retrieved_think.jsonl 1 gen --cfg configs/think.toml ) &
+stage $R/gen_gold_calc.jsonl 0 gen --ctx gold --cfg configs/calc.toml
+stage $R/gen_retrieved_calc.jsonl 0 gen --cfg configs/calc.toml
+stage $R/gen_gold_unit.jsonl 0 gen --ctx gold --cfg configs/unit.toml
+stage $R/gen_retrieved_unit.jsonl 0 gen --cfg configs/unit.toml
+wait
+( stage $R/grade_gold_think.jsonl 1 grade --ctx gold --cfg configs/think.toml
+  stage $R/grade_retrieved_think.jsonl 1 grade --cfg configs/think.toml
+  stage $R/grade_gold_unit.jsonl 1 grade --ctx gold --cfg configs/unit.toml ) &
+stage $R/grade_gold_calc.jsonl 0 grade --ctx gold --cfg configs/calc.toml
+stage $R/grade_retrieved_calc.jsonl 0 grade --cfg configs/calc.toml
+stage $R/grade_retrieved_unit.jsonl 0 grade --cfg configs/unit.toml
+wait
+
 FORCE=1 stage results/RESULTS.md 0 report
 log "all done"
