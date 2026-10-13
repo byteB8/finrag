@@ -1,0 +1,32 @@
+{
+ "ctx": "retrieved",
+ "label": "prompt v1, dense + company + year + rerank",
+ "flag": {
+  "answerable": {
+   "n": 150,
+   "declined": 33,
+   "coverage": 0.78,
+   "correct": 0.6066666666666667,
+   "selective_accuracy": 0.7008547008547008
+  },
+  "unanswerable": {
+   "n": 50,
+   "declined": 48,
+   "declined_rate": 0.96
+  }
+ },
+ "text": {
+  "answerable": {
+   "n": 150,
+   "declined": 33,
+   "coverage": 0.78,
+   "correct": 0.6066666666666667,
+   "selective_accuracy": 0.7008547008547008
+  },
+  "unanswerable": {
+   "n": 50,
+   "declined": 46,
+   "declined_rate": 0.92
+  }
+ }
+}

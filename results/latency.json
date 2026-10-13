@@ -1,0 +1,30 @@
+{
+ "questions": 150,
+ "sequential": {
+  "p50_ms": {
+   "embed_ms": 34.0,
+   "search_ms": 26.6,
+   "rerank_ms": 701.8,
+   "generate_ms": 4580.1,
+   "total_ms": 5334.4
+  },
+  "p95_ms": {
+   "embed_ms": 39.3,
+   "search_ms": 34.9,
+   "rerank_ms": 784.4,
+   "generate_ms": 6871.9,
+   "total_ms": 7658.5
+  },
+  "wall_p50_ms": 5342.1,
+  "wall_p95_ms": 7667.9
+ },
+ "concurrent": {
+  "clients": 8,
+  "seconds": 213.2,
+  "questions_per_s": 0.7,
+  "wall_p50_ms": 10296.9,
+  "wall_p95_ms": 17900.6
+ },
+ "abstained": 34,
+ "valid_citations": 142
+}

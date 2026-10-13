@@ -1,4 +1,6 @@
 {
+ "ctx": "retrieved",
+ "label": "prompt v1, before the decoding-loop fixes",
  "questions": 150,
  "judge": "Qwen/Qwen3-14B-AWQ",
  "judge_unparsed": 0,

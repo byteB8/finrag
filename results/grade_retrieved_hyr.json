@@ -1,0 +1,25 @@
+{
+ "ctx": "retrieved",
+ "label": "prompt v1, hybrid + company + year + rerank",
+ "questions": 150,
+ "judge": "Qwen/Qwen3-14B-AWQ",
+ "judge_unparsed": 0,
+ "correct": [
+  0.5933333333333334,
+  0.5133333333333333,
+  0.6668333333333308
+ ],
+ "incorrect": [
+  0.36,
+  0.2866666666666667,
+  0.44
+ ],
+ "refusal": [
+  0.04666666666666667,
+  0.013333333333333334,
+  0.08666666666666667
+ ],
+ "answers_unparsed": 1,
+ "valid_citations": 143,
+ "with_ungrounded_numbers": 100
+}

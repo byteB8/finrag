@@ -1,0 +1,32 @@
+{
+ "ctx": "retrieved",
+ "label": "prompt v2, hybrid + company + rerank",
+ "flag": {
+  "answerable": {
+   "n": 150,
+   "declined": 48,
+   "coverage": 0.6799999999999999,
+   "correct": 0.5933333333333334,
+   "selective_accuracy": 0.696078431372549
+  },
+  "unanswerable": {
+   "n": 50,
+   "declined": 48,
+   "declined_rate": 0.96
+  }
+ },
+ "text": {
+  "answerable": {
+   "n": 150,
+   "declined": 25,
+   "coverage": 0.8333333333333334,
+   "correct": 0.5933333333333334,
+   "selective_accuracy": 0.664
+  },
+  "unanswerable": {
+   "n": 50,
+   "declined": 41,
+   "declined_rate": 0.82
+  }
+ }
+}

@@ -1,23 +1,25 @@
 {
+ "ctx": "retrieved",
+ "label": "prompt v2, hybrid + company + rerank",
  "questions": 150,
  "judge": "Qwen/Qwen3-14B-AWQ",
  "judge_unparsed": 0,
  "correct": [
-  0.5466666666666666,
-  0.4666666666666667,
-  0.6266666666666667
+  0.5933333333333334,
+  0.5133333333333333,
+  0.6733333333333333
  ],
  "incorrect": [
-  0.42,
-  0.34,
-  0.5
+  0.37333333333333335,
+  0.3,
+  0.4533333333333333
  ],
  "refusal": [
   0.03333333333333333,
   0.006666666666666667,
   0.06666666666666667
  ],
- "answers_unparsed": 0,
- "valid_citations": 150,
- "with_ungrounded_numbers": 105
+ "answers_unparsed": 2,
+ "valid_citations": 148,
+ "with_ungrounded_numbers": 104
 }
