@@ -1,4 +1,5 @@
 # MVP: one pass over the 150 FinanceBench open-source questions.
+label = "prompt v1, hybrid + company + rerank"
 
 [chunk]
 max_tokens = 512          # counted with the embedding model's tokenizer
@@ -31,6 +32,7 @@ contexts = 8
 max_tokens = 1024
 max_model_len = 16384
 thinking = false
+gpu_util = 0.88          # headroom: at 0.92 PyTorch logged OOM retries on long prompts
 max_num_seqs = 32        # hybrid linear-attention model: vLLM reserves per-sequence state for this many
 need_mib = 12000
 

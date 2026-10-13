@@ -1,0 +1,7 @@
+# Generation from the year-filtered hybrid retrieval (chosen after seeing the retrieval results; reported as such).
+base = "configs/mvp.toml"
+tag = "_hyr"
+label = "prompt v1, hybrid + company + year + rerank"
+
+[gen]
+search = "hybrid+company+year+rerank"

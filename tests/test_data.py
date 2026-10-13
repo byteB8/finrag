@@ -57,6 +57,31 @@ class Entities(unittest.TestCase):
         self.assertEqual(data.detect_years("No year 20219 here"), [])
 
 
+class Unanswerable(unittest.TestCase):
+    qs = [{"financebench_id": f"financebench_id_{i:05d}", "question": q} for i, q in enumerate([
+        "What is the FY2018 capital expenditure for 3M?",
+        "Does AMEX have an improving operating margin profile as of 2022?",
+        "Are JnJ's financials those of a high growth company? Is JnJ growing?",
+        "What drove the reduction in SG&A expense?"])]
+
+    def test_years_move_and_companies_swap(self):
+        out = data.make_unanswerable(self.qs, n_each=2, seed=0)
+        years = [o for o in out if o["kind"] == "year"]
+        comps = [o for o in out if o["kind"] == "company"]
+        self.assertEqual(len(years), 2)
+        for o in years:
+            self.assertFalse(data.detect_years(o["question"]) and min(data.detect_years(o["question"])) < "2025")
+        for o in comps:
+            self.assertEqual(data.detect_companies(o["question"]), [])            # no corpus company left
+            self.assertNotIn(o["source"], {y["source"] for y in years})            # different source questions
+        jnj = [o for o in comps if "JnJ" in next(q["question"] for q in self.qs if q["financebench_id"] == o["source"])]
+        if jnj:
+            self.assertNotIn("JnJ", jnj[0]["question"])                           # every mention replaced
+
+    def test_deterministic(self):
+        self.assertEqual(data.make_unanswerable(self.qs, 2), data.make_unanswerable(self.qs, 2))
+
+
 class Evidence(unittest.TestCase):
     def test_overlap_ignores_layout(self):
         page = "Total revenue\n$ 1,234\nNet income 567"

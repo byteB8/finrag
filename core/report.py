@@ -56,6 +56,27 @@ def prompt_ab(results: Path) -> list[str]:
     return rows
 
 
+def label_of(name: str, summary: dict) -> str:
+    """'retrieved chunks, prompt v1, ...' from the label a config records with its results."""
+    if not summary.get("label"):
+        return run_label(name)
+    ctx = {"retrieved": "retrieved chunks", "gold": "labelled evidence pages (oracle)"}.get(summary.get("ctx"), "")
+    return f"{ctx}, {summary['label']}" if ctx else summary["label"]
+
+
+def abstention(results: Path) -> list[str]:
+    rows = []
+    for path in sorted(results.glob("abstain_*.json")):
+        a = json.loads(path.read_text())
+        for rule in ("flag", "text"):
+            r = a[rule]
+            ans, un = r["answerable"], r["unanswerable"]
+            rows.append(f"| {a.get('label') or path.stem} | {rule} | {100 * ans['coverage']:.1f} | "
+                        f"{100 * ans['correct']:.1f} | {100 * ans['selective_accuracy']:.1f} | "
+                        f"{un['declined']}/{un['n']} ({100 * un['declined_rate']:.0f}%) |")
+    return rows
+
+
 def run_label(name: str) -> str:
     """retrieved -> 'retrieved chunks'; gold_v2 -> 'labelled evidence pages (oracle), prompt v2'."""
     ctx, _, tag = name.partition("_")
@@ -98,7 +119,7 @@ def render(results: Path, fb_results: Path | None = None) -> str:
         name = path.stem[len("grade_"):]
         gen = _jsonl(results / "raw" / f"gen_{name}.jsonl")
         missing = f"{sum(says_missing(r['answer']) for r in gen)}" if gen else "-"
-        rows.append(f"| {run_label(name)} | {_pct(g['correct'])} | {_pct(g['incorrect'])} | {_pct(g['refusal'])} | "
+        rows.append(f"| {label_of(name, g)} | {_pct(g['correct'])} | {_pct(g['incorrect'])} | {_pct(g['refusal'])} | "
                     f"{missing} | {g['valid_citations']}/{g['questions']} | {g['with_ungrounded_numbers']} |")
     if rows:
         out += ["## Answers", "", "Verdicts from an LLM judge (Qwen3-14B-AWQ) against the analysts' reference answers. "
@@ -109,6 +130,15 @@ def render(results: Path, fb_results: Path | None = None) -> str:
                 "numbers, not a hallucination rate.", "",
                 "| run | correct | incorrect | refusal | says info missing | valid citations | with numbers not in cited text |",
                 "|---|---|---|---|---|---|---|", *rows, ""]
+    ab_rows = abstention(results)
+    if ab_rows:
+        out += ["## Abstention", "",
+                "Retrieved context. *Declined* = the answer's `answerable` flag is false (rule *flag*) or its text says the "
+                "information is missing (rule *text*). Unanswerable questions: 50 FinanceBench questions with every year "
+                "moved 10 years later or the company replaced by one outside the corpus. Selective accuracy = correct "
+                "among answered questions.", "",
+                "| run | rule | coverage (answerable) | correct overall | selective accuracy | declined on unanswerable |",
+                "|---|---|---|---|---|---|", *ab_rows, ""]
     ab = prompt_ab(results)
     if ab:
         out += ["## Prompt A/B (v2 - v1, same questions)", "",

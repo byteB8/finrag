@@ -2,12 +2,17 @@
 
     python run.py prep                  parse the PDFs, chunk every page, check the evidence labels
     python run.py index                 BM25 index and dense embeddings of every chunk (one GPU process per shard)
+    python run.py qembed --set unans    embed a question set (FinanceBench questions are embedded by index)
     python run.py search                retrieval for each question under each configuration, scored
     python run.py gen --ctx retrieved   answers from the top retrieved chunks (--ctx gold: the labelled pages)
     python run.py grade --ctx retrieved verdicts from an LLM judge against the reference answers
     python run.py sheet --ctx retrieved blind hand-grading page for a random sample (--n, default 30)
     python run.py agree --ctx retrieved judge vs hand grades (from results/review/labels_<ctx>.json)
+    python run.py abstain               how often answers decline, on answerable and unanswerable questions
     python run.py report                results/RESULTS.md from the saved scores
+
+--set fb (default) is the 150 FinanceBench questions; --set unans is 50 questions the corpus cannot answer
+(core.data.make_unanswerable); search and gen accept several sets at once (--set fb,unans).
 
 Started detached by job.sh. Every process title is pinned to PROC_TITLE (default `python run.py`), so on
 the shared server ps and nvidia-smi show a generic name instead of vLLM's EngineCore/worker titles.
@@ -55,9 +60,15 @@ def read_jsonl(path) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
-def run_name(cfg: dict, args) -> str:
-    """Output name of a gen/grade run: the context plus the config's optional tag (e.g. retrieved_v2)."""
-    return args.ctx + cfg.get("tag", "")
+def load_set(name: str) -> list[dict]:
+    from core import data
+    questions = data.load_questions(env.FB)
+    return questions if name == "fb" else data.make_unanswerable(questions)
+
+
+def run_name(cfg: dict, args, qset: str = "fb") -> str:
+    """Output name of a gen/grade run: [set_]context plus the config's optional tag (retrieved_v2, unans_retrieved)."""
+    return ("" if qset == "fb" else f"{qset}_") + args.ctx + cfg.get("tag", "")
 
 
 def gold_pages(q: dict) -> list[tuple[str, int]]:
@@ -199,10 +210,26 @@ def stage_embed(cfg: dict, args) -> None:
         np.save(env.INDEX / "queries.npy", embed([x["question"] for x in qs], instruction=e["query_instruction"]))
 
 
+def stage_qembed(cfg: dict, args) -> None:
+    """Query vectors for a question set other than FinanceBench's (those come from `index`)."""
+    import numpy as np
+
+    from core.search import Embedder
+
+    e = cfg["embed"]
+    gpu, util = env.pick_gpu(need_mib=e["need_mib"])
+    env.use_gpu(gpu)
+    qs = load_set(args.set)
+    embed = Embedder(e["model"], min(util, e["gpu_util"]), max_tokens=e["max_len"])
+    np.save(env.INDEX / f"queries_{args.set}.npy", embed([q["question"] for q in qs], instruction=e["query_instruction"]))
+    print(f"embedded {len(qs)} {args.set} questions on GPU {gpu}", flush=True)
+
+
 # ---------------------------------------------------------------- search
 
 def stage_search(cfg: dict, args) -> None:
-    """Candidates per question and configuration on the CPU; every reranker pair scored in one vLLM run."""
+    """Candidates per question and configuration on the CPU; every reranker pair, for every question set,
+    scored in one vLLM run. Only FinanceBench (labelled) gets the scoped configurations and the scores."""
     import numpy as np
     import pandas as pd
 
@@ -219,13 +246,20 @@ def stage_search(cfg: dict, args) -> None:
     period = chunks.period.astype(str).to_numpy()
     dense = np.load(env.INDEX / "dense.npy").astype(np.float32)
     bm = BM25.load(env.INDEX / "bm25")
-    qs = data.load_questions(env.FB)[: args.limit or None]
-    qvecs = np.load(env.INDEX / "queries.npy").astype(np.float32)[: len(qs)]
+    sets = args.set.split(",")
+    qs, qsets, qvecs = [], [], []
+    for name in sets:
+        part = load_set(name)[: args.limit or None]
+        qs += part
+        qsets += [name] * len(part)
+        qvecs.append(np.load(env.INDEX / ("queries.npy" if name == "fb" else f"queries_{name}.npy"))
+                     .astype(np.float32)[: len(part)])
+    qvecs = np.concatenate(qvecs)
     K, depth, top_n = max(s["k"]), s["depth"], rr_cfg["top_n"]
 
     t0 = time.time()
     cands, extra = [], []
-    for q, qv in zip(qs, qvecs):
+    for q, qs_name, qv in zip(qs, qsets, qvecs):
         bm_s, de_s = bm.scores(q["question"]), dense @ qv
         found, years = data.detect_companies(q["question"]), data.detect_years(q["question"])
         co = np.isin(company, found) if found else None
@@ -237,17 +271,18 @@ def stage_search(cfg: dict, args) -> None:
         def hybrid(mask):
             return rrf([top_k(bm_s, depth, mask), top_k(de_s, depth, mask)], s["rrf_k"])
 
-        cands.append({
-            "bm25": top_k(bm_s, K), "dense": top_k(de_s, K), "hybrid": hybrid(None), "hybrid+company": hybrid(co),
-            "hybrid+company+rerank": hybrid(co), "hybrid+company+year+rerank": hybrid(co_yr),
+        c = {"bm25": top_k(bm_s, K), "dense": top_k(de_s, K), "hybrid": hybrid(None), "hybrid+company": hybrid(co),
+             "hybrid+company+rerank": hybrid(co), "hybrid+company+year+rerank": hybrid(co_yr),
+             "dense+company+rerank": top_k(de_s, depth, co), "dense+company+year+rerank": top_k(de_s, depth, co_yr)}
+        if qs_name == "fb":
             # scoped settings use the question's labels, as if the user had picked the company or filing
-            "scoped-company: hybrid+rerank": hybrid(company == q["company"]),
-            "scoped-filing: hybrid+rerank": hybrid(doc == q["doc_name"])})
+            c["scoped-company: hybrid+rerank"] = hybrid(company == q["company"])
+            c["scoped-filing: hybrid+rerank"] = hybrid(doc == q["doc_name"])
+        cands.append(c)
         extra.append({"detected": found, "years": years})
     print(f"candidates for {len(qs)} questions in {time.time() - t0:.0f}s", flush=True)
 
-    reranked = [n for n in cands[0] if n.endswith("rerank")]
-    pairs = sorted({(qi, i) for qi, c in enumerate(cands) for n in reranked for i in c[n][:top_n]})
+    pairs = sorted({(qi, i) for qi, c in enumerate(cands) for n in c if n.endswith("rerank") for i in c[n][:top_n]})
     gpu, util = env.pick_gpu(need_mib=rr_cfg["need_mib"])
     util = min(util, rr_cfg["gpu_util"])
     env.use_gpu(gpu)
@@ -257,20 +292,27 @@ def stage_search(cfg: dict, args) -> None:
     score = dict(zip(pairs, scores))
     print(f"reranked {len(pairs)} pairs on GPU {gpu} in {time.time() - t1:.0f}s", flush=True)
 
-    rows = []
-    for qi, (q, c, x) in enumerate(zip(qs, cands, extra)):
-        runs = {n: (sorted(r[:top_n], key=lambda i: -score[(qi, i)]) + r[top_n:]) if n in reranked else r
+    out = {name: [] for name in sets}
+    for qi, (q, qs_name, c, x) in enumerate(zip(qs, qsets, cands, extra)):
+        runs = {n: (sorted(r[:top_n], key=lambda i: -score[(qi, i)]) + r[top_n:]) if n.endswith("rerank") else r
                 for n, r in c.items()}
+        if qs_name != "fb":
+            out[qs_name].append({"id": q["financebench_id"], "question": q["question"], "kind": q.get("kind"), **x,
+                                 "top": {n: [keys[i] for i in r[:K]] for n, r in runs.items()}})
+            continue
         gold = gold_pages(q)
-        rows.append({"id": q["financebench_id"], "question": q["question"], "company": q["company"],
+        out["fb"].append({"id": q["financebench_id"], "question": q["question"], "company": q["company"],
                      "doc_name": q["doc_name"], **x, "gold": gold,
                      "page_rank": {n: metrics.first_hit([page_of[i] for i in r[:K]], set(map(tuple, gold)))
                                    for n, r in runs.items()},
                      "doc_rank": {n: metrics.first_hit([doc[i] for i in r[:K]], {g[0] for g in gold})
                                   for n, r in runs.items()},
                      "top": {n: [keys[i] for i in r[:K]] for n, r in runs.items()}})
-    write_jsonl(env.RAW / "search.jsonl", rows)
-
+    for name, rows in out.items():
+        write_jsonl(env.RAW / ("search.jsonl" if name == "fb" else f"search_{name}.jsonl"), rows)
+    if "fb" not in sets:
+        return
+    rows = out["fb"]
     summary = {"questions": len(rows), "rerank_pairs": len(pairs), "seconds": round(time.time() - t0, 1), "configs": {}}
     for name in rows[0]["top"]:
         pr = [r["page_rank"][name] for r in rows]
@@ -294,7 +336,7 @@ def stage_search(cfg: dict, args) -> None:
 
 # ---------------------------------------------------------------- gen and grade
 
-def contexts(cfg: dict, ctx: str, qs: list[dict]) -> list[list[tuple[str, str]]]:
+def contexts(cfg: dict, ctx: str, qs: list[dict], qset: str = "fb") -> list[list[tuple[str, str]]]:
     """(header, text) passages per question: the top retrieved chunks, or the labelled evidence pages."""
     import pandas as pd
 
@@ -313,7 +355,7 @@ def contexts(cfg: dict, ctx: str, qs: list[dict]) -> list[list[tuple[str, str]]]
     chunks = pd.read_parquet(env.DATA / "chunks.parquet")
     by_key = {f"{d}:{p}:{k}": (h, t) for d, p, k, h, t in
               zip(chunks.doc_name, chunks.page, chunks.part, chunks.header, chunks.text)}
-    found = {r["id"]: r for r in read_jsonl(env.RAW / "search.jsonl")}
+    found = {r["id"]: r for r in read_jsonl(env.RAW / ("search.jsonl" if qset == "fb" else f"search_{qset}.jsonl"))}
     g = cfg["gen"]
     return [[by_key[k] for k in found[q["financebench_id"]]["top"][g["search"]][: g["contexts"]]] for q in qs]
 
@@ -322,30 +364,33 @@ def stage_gen(cfg: dict, args) -> None:
     from core import answer, data, llm
 
     g = cfg["gen"]
-    qs = data.load_questions(env.FB)[: args.limit or None]
-    if args.ids:
-        qs = [q for q in qs if q["financebench_id"] in args.ids.split(",")]
-    passages = contexts(cfg, args.ctx, qs)
     gpu, util = env.pick_gpu(need_mib=g["need_mib"])
+    util = min(util, g.get("gpu_util", util))
     env.use_gpu(gpu)
     model = llm.make_llm(g["model"], g["max_model_len"], util, max_num_seqs=g["max_num_seqs"],
                          limit_mm_per_prompt={"image": 0, "video": 0})
     params = llm.json_params(answer.SCHEMA, g["max_tokens"])
-    t0 = time.time()
     prompt = g.get("prompt", "v1")
-    outs = llm.chat(model, [answer.build_messages(q["question"], p, prompt) for q, p in zip(qs, passages)], params,
-                    thinking=g.get("thinking", False))
-    secs = time.time() - t0
-    rows = []
-    for q, p, o in zip(qs, passages, outs):
-        parsed = llm.parse_json(o["text"])
-        rows.append({"id": q["financebench_id"], "question": q["question"], "reference": q["answer"],
-                     "answer": (parsed or {}).get("answer", o["text"]), "answerable": (parsed or {}).get("answerable"),
-                     "reasoning": (parsed or {}).get("reasoning"), "check": answer.check(parsed, len(p), p),
-                     "passages": [h for h, _ in p], **{k: o[k] for k in ("finish", "prompt_tokens", "output_tokens")}})
-    write_jsonl(env.RAW / f"gen_{run_name(cfg, args)}.jsonl", rows)
-    print(f"{len(rows)} answers on GPU {gpu} in {secs:.0f}s "
-          f"({sum(r['output_tokens'] for r in rows) / secs:.0f} output tok/s)", flush=True)
+    for qset in args.set.split(","):
+        qs = load_set(qset)[: args.limit or None]
+        if args.ids:
+            qs = [q for q in qs if q["financebench_id"] in args.ids.split(",")]
+        passages = contexts(cfg, args.ctx, qs, qset)
+        t0 = time.time()
+        outs = llm.chat(model, [answer.build_messages(q["question"], p, prompt) for q, p in zip(qs, passages)],
+                        params, thinking=g.get("thinking", False))
+        secs = time.time() - t0
+        rows = []
+        for q, p, o in zip(qs, passages, outs):
+            parsed = llm.parse_json(o["text"])
+            rows.append({"id": q["financebench_id"], "question": q["question"], "reference": q.get("answer"),
+                         "answer": (parsed or {}).get("answer", o["text"]), "answerable": (parsed or {}).get("answerable"),
+                         "reasoning": (parsed or {}).get("reasoning"), "check": answer.check(parsed, len(p), p),
+                         "passages": [h for h, _ in p],
+                         **{k: o[k] for k in ("finish", "prompt_tokens", "output_tokens")}})
+        write_jsonl(env.RAW / f"gen_{run_name(cfg, args, qset)}.jsonl", rows)
+        print(f"{qset}: {len(rows)} answers on GPU {gpu} in {secs:.0f}s "
+              f"({sum(r['output_tokens'] for r in rows) / secs:.0f} output tok/s)", flush=True)
 
 
 def stage_grade(cfg: dict, args) -> None:
@@ -366,7 +411,8 @@ def stage_grade(cfg: dict, args) -> None:
         graded.append({"id": r["id"], "verdict": grade.verdict_of(parsed), "reason": (parsed or {}).get("reason"),
                        "judge_parsed": parsed is not None})
     write_jsonl(env.RAW / f"grade_{run_name(cfg, args)}.jsonl", graded)
-    summary = {"questions": len(graded), "judge": j["model"], "judge_unparsed": sum(not g["judge_parsed"] for g in graded)}
+    summary = {"ctx": args.ctx, "label": cfg.get("label", ""), "questions": len(graded), "judge": j["model"],
+               "judge_unparsed": sum(not g["judge_parsed"] for g in graded)}
     for v in grade.VERDICTS:
         summary[v] = metrics.bootstrap_ci([g["verdict"] == v for g in graded])
     checks = [r["check"] for r in rows]
@@ -406,6 +452,19 @@ def stage_agree(cfg: dict, args) -> None:
     print(json.dumps({k: v for k, v in res.items() if k != "disagreements"}, indent=1))
 
 
+# ---------------------------------------------------------------- abstention
+
+def stage_abstain(cfg: dict, args) -> None:
+    from core import abstain
+
+    name = run_name(cfg, args)
+    res = abstain.summarize(read_jsonl(env.RAW / f"gen_{name}.jsonl"),
+                            {g["id"]: g["verdict"] for g in read_jsonl(env.RAW / f"grade_{name}.jsonl")},
+                            read_jsonl(env.RAW / f"gen_{run_name(cfg, args, 'unans')}.jsonl"))
+    write_json(env.RESULTS / f"abstain_{name}.json", {"ctx": args.ctx, "label": cfg.get("label", ""), **res})
+    print(json.dumps(res, indent=1), flush=True)
+
+
 # ---------------------------------------------------------------- report
 
 def stage_report(cfg: dict, args) -> None:
@@ -430,8 +489,9 @@ def load_cfg(path) -> dict:
     return cfg
 
 
-STAGES = {"prep": stage_prep, "index": stage_index, "embed": stage_embed, "search": stage_search, "gen": stage_gen,
-          "grade": stage_grade, "sheet": stage_sheet, "agree": stage_agree, "report": stage_report}
+STAGES = {"prep": stage_prep, "index": stage_index, "embed": stage_embed, "qembed": stage_qembed,
+          "search": stage_search, "gen": stage_gen, "grade": stage_grade, "sheet": stage_sheet,
+          "agree": stage_agree, "abstain": stage_abstain, "report": stage_report}
 
 
 def main() -> None:
@@ -439,6 +499,7 @@ def main() -> None:
     ap.add_argument("stage", choices=sorted(STAGES))
     ap.add_argument("--cfg", default="configs/mvp.toml")
     ap.add_argument("--ctx", default="retrieved", choices=["retrieved", "gold"])
+    ap.add_argument("--set", default="fb", help="question set(s): fb (FinanceBench), unans (unanswerable)")
     ap.add_argument("--limit", type=int, default=0, help="first N questions only (smoke runs)")
     ap.add_argument("--n", type=int, default=30, help="sample size for the hand-grading sheet")
     ap.add_argument("--ids", default="", help="gen: only these comma-separated question ids (debugging)")

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import random
 import re
 from pathlib import Path
 
@@ -52,6 +53,11 @@ COMPANY_ALIASES = {
 }
 _ALIAS_RE = [(company, re.compile(r"(?<![\w&])" + re.escape(a) + r"(?![\w&])"))
              for company, aliases in COMPANY_ALIASES.items() for a in aliases]
+_ALIASES_OF = {c: [rx for company, rx in _ALIAS_RE if company == c] for c in COMPANY_ALIASES}
+
+# SEC filers that are not in the corpus: questions about them cannot be answered from it.
+OUTSIDE_COMPANIES = ["Tesla", "Nvidia", "Starbucks", "Disney", "Ford", "Uber", "Airbnb", "Qualcomm",
+                     "Caterpillar", "Visa"]
 _YEAR_RE = re.compile(r"(?<!\d)(20[0-3]\d)(?!\d)")
 
 
@@ -167,3 +173,27 @@ def evidence_overlap(evidence: str, page_text: str) -> float:
         return 0.0
     page = set(_words(page_text))
     return sum(w in page for w in ev) / len(ev)
+
+
+def make_unanswerable(questions: list[dict], n_each: int = 25, seed: int = 0, shift: int = 10) -> list[dict]:
+    """Questions the corpus cannot answer, made from FinanceBench questions: every year moved `shift` years
+    later (no filing is that recent), or the company replaced by one outside the corpus. The two kinds use
+    different source questions."""
+    order = list(questions)
+    random.Random(seed).shuffle(order)
+    out: list[dict] = []
+    year_src = [q for q in order if _YEAR_RE.search(q["question"])][:n_each]
+    for q in year_src:
+        text = _YEAR_RE.sub(lambda m: str(int(m.group(1)) + shift), q["question"])
+        out.append({"financebench_id": "unans-year-" + q["financebench_id"].split("_")[-1], "question": text,
+                    "kind": "year", "source": q["financebench_id"]})
+    used = {q["financebench_id"] for q in year_src}
+    co_src = [q for q in order if q["financebench_id"] not in used and detect_companies(q["question"])][:n_each]
+    for k, q in enumerate(co_src):
+        name, text = OUTSIDE_COMPANIES[k % len(OUTSIDE_COMPANIES)], q["question"]
+        for company in detect_companies(text):
+            for rx in _ALIASES_OF[company]:
+                text = rx.sub(name, text)
+        out.append({"financebench_id": "unans-company-" + q["financebench_id"].split("_")[-1], "question": text,
+                    "kind": "company", "source": q["financebench_id"]})
+    return out

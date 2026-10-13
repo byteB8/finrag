@@ -1,0 +1,7 @@
+# Generation from dense-only retrieval with the company and year filters (BM25 dragged hybrid fusion down).
+base = "configs/mvp.toml"
+tag = "_dyr"
+label = "prompt v1, dense + company + year + rerank"
+
+[gen]
+search = "dense+company+year+rerank"

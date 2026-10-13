@@ -2,3 +2,4 @@
 # the user hand-graded 30 of these answers). Generated at commit 1be0c6e (14:30 run).
 base = "configs/mvp.toml"
 tag = "_prefix"
+label = "prompt v1, before the decoding-loop fixes"
