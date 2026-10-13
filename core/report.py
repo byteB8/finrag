@@ -67,6 +67,15 @@ def render(results: Path, fb_results: Path | None = None) -> str:
         out += ["## Answers", "", "Verdicts from an LLM judge against the analysts' reference answers.", "",
                 "| context | correct | incorrect | refusal | valid citations | with numbers not in cited text |",
                 "|---|---|---|---|---|---|", *rows, ""]
+    for ctx in ("retrieved", "gold"):
+        path = results / f"agreement_{ctx}.json"
+        if path.exists():
+            a = json.loads(path.read_text())
+            c = a["correct_rate"]
+            out += ["## Judge check", "",
+                    f"On {a['n']} randomly sampled answers ({ctx} context), graded blind by hand, the judge agreed on "
+                    f"{a['agree']} (Cohen's kappa {a['kappa']}). Share graded correct on that sample: by hand "
+                    f"{100 * c['human']:.1f}%, by the judge {100 * c['judge']:.1f}%.", ""]
     if fb_results is not None and fb_results.exists():
         base = paper_baselines(fb_results)
         if base:

@@ -5,6 +5,8 @@
     python run.py search                retrieval for each question under each configuration, scored
     python run.py gen --ctx retrieved   answers from the top retrieved chunks (--ctx gold: the labelled pages)
     python run.py grade --ctx retrieved verdicts from an LLM judge against the reference answers
+    python run.py sheet --ctx retrieved blind hand-grading page for a random sample (--n, default 30)
+    python run.py agree --ctx retrieved judge vs hand grades (from results/review/labels_<ctx>.json)
     python run.py report                results/RESULTS.md from the saved scores
 
 Started detached by job.sh. Every process title is pinned to PROC_TITLE (default `python run.py`), so on
@@ -325,6 +327,35 @@ def stage_grade(cfg: dict, args) -> None:
     print(json.dumps({k: v for k, v in summary.items()}, indent=1), flush=True)
 
 
+# ---------------------------------------------------------------- hand grading
+
+def stage_sheet(cfg: dict, args) -> None:
+    from core import data, review
+
+    rows = {r["id"]: r for r in read_jsonl(env.RAW / f"gen_{args.ctx}.jsonl")}
+    qs = {q["financebench_id"]: q for q in data.load_questions(env.FB)}
+    ids = review.sample_ids(sorted(rows), args.n)
+    passages = contexts(cfg, args.ctx, [qs[i] for i in ids])
+    items = [{"id": i, "question": rows[i]["question"], "reference": rows[i]["reference"],
+              "justification": qs[i].get("justification"), "answer": rows[i]["answer"],
+              "reasoning": rows[i].get("reasoning"), "passages": [list(p) for p in ps]}
+             for i, ps in zip(ids, passages)]
+    out = env.RESULTS / "review" / f"sheet_{args.ctx}.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(review.render_sheet(items, args.ctx))
+    print(f"wrote {out.relative_to(env.BASE)} ({len(items)} answers)")
+
+
+def stage_agree(cfg: dict, args) -> None:
+    from core import review
+
+    labels = json.loads((env.RESULTS / "review" / f"labels_{args.ctx}.json").read_text())["labels"]
+    judge = {g["id"]: g["verdict"] for g in read_jsonl(env.RAW / f"grade_{args.ctx}.jsonl")}
+    res = review.agreement(labels, judge)
+    write_json(env.RESULTS / f"agreement_{args.ctx}.json", res)
+    print(json.dumps({k: v for k, v in res.items() if k != "disagreements"}, indent=1))
+
+
 # ---------------------------------------------------------------- report
 
 def stage_report(cfg: dict, args) -> None:
@@ -334,7 +365,7 @@ def stage_report(cfg: dict, args) -> None:
 
 
 STAGES = {"prep": stage_prep, "index": stage_index, "search": stage_search, "gen": stage_gen,
-          "grade": stage_grade, "report": stage_report}
+          "grade": stage_grade, "sheet": stage_sheet, "agree": stage_agree, "report": stage_report}
 
 
 def main() -> None:
@@ -343,6 +374,7 @@ def main() -> None:
     ap.add_argument("--cfg", default="configs/mvp.toml")
     ap.add_argument("--ctx", default="retrieved", choices=["retrieved", "gold"])
     ap.add_argument("--limit", type=int, default=0, help="first N questions only (smoke runs)")
+    ap.add_argument("--n", type=int, default=30, help="sample size for the hand-grading sheet")
     args = ap.parse_args()
     env.set_defaults()
     with open(env.BASE / args.cfg, "rb") as f:
