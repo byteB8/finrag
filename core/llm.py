@@ -11,16 +11,19 @@ def make_llm(model: str, max_model_len: int, util: float, **kw):
 
 
 def json_params(schema: dict, max_tokens: int, temperature: float = 0.0):
-    """Sampling parameters whose output must match `schema` (the API was renamed across vLLM versions)."""
+    """Sampling parameters whose output must match `schema` (the API was renamed across vLLM versions).
+
+    Whitespace between JSON tokens is disallowed: with it allowed, greedy decoding sometimes emitted
+    "\\r\\n  " until the token limit after a complete field (14 of 150 answers in one run)."""
     from vllm import SamplingParams
     try:
         from vllm.sampling_params import StructuredOutputsParams
         return SamplingParams(temperature=temperature, max_tokens=max_tokens,
-                              structured_outputs=StructuredOutputsParams(json=schema))
+                              structured_outputs=StructuredOutputsParams(json=schema, disable_any_whitespace=True))
     except ImportError:
         from vllm.sampling_params import GuidedDecodingParams
         return SamplingParams(temperature=temperature, max_tokens=max_tokens,
-                              guided_decoding=GuidedDecodingParams(json=schema))
+                              guided_decoding=GuidedDecodingParams(json=schema, disable_any_whitespace=True))
 
 
 def chat(llm, conversations: list[list[dict]], params, thinking: bool = False) -> list[dict]:
