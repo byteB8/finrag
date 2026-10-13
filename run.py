@@ -38,9 +38,8 @@ _pin_process_title()
 import argparse  # noqa: E402
 import json  # noqa: E402
 import time  # noqa: E402
-import tomllib  # noqa: E402
-
 from core import env  # noqa: E402
+from core.config import load_cfg, merge  # noqa: E402,F401  (merge: used by tests)
 
 
 def write_json(path, obj) -> None:
@@ -140,10 +139,6 @@ def stage_prep(cfg: dict, args) -> None:
 
 # ---------------------------------------------------------------- index
 
-def chunk_texts(chunks) -> list[str]:
-    return (chunks["header"] + "\n" + chunks["text"]).tolist()
-
-
 def stage_index(cfg: dict, args) -> None:
     """BM25 on the CPU, then dense embeddings sharded over every GPU with room (one `run.py embed` process
     per GPU), merged into data/index/dense.npy. Shard 0 also embeds the questions (data/index/queries.npy)."""
@@ -154,10 +149,11 @@ def stage_index(cfg: dict, args) -> None:
     import numpy as np
     import pandas as pd
 
+    from core import data
     from core.search import BM25
 
     chunks = pd.read_parquet(env.DATA / "chunks.parquet")
-    texts = chunk_texts(chunks)
+    texts = data.chunk_texts(chunks)
     env.INDEX.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     BM25.build(texts).save(env.INDEX / "bm25")
@@ -196,7 +192,7 @@ def stage_embed(cfg: dict, args) -> None:
     gpu, util = env.pick_gpu(need_mib=e["need_mib"])
     util = min(util, e["gpu_util"])
     env.use_gpu(gpu)
-    texts = chunk_texts(pd.read_parquet(env.DATA / "chunks.parquet"))
+    texts = data.chunk_texts(pd.read_parquet(env.DATA / "chunks.parquet"))
     size = -(-len(texts) // args.shards)
     part = texts[args.shard * size:(args.shard + 1) * size]
     t0 = time.time()
@@ -234,11 +230,11 @@ def stage_search(cfg: dict, args) -> None:
     import pandas as pd
 
     from core import data, metrics
-    from core.search import BM25, rerank_scores, rrf, top_k
+    from core.search import BM25, entity_masks, rerank_scores, rrf, top_k
 
     s, rr_cfg = cfg["search"], cfg["rerank"]
     chunks = pd.read_parquet(env.DATA / "chunks.parquet")
-    texts = chunk_texts(chunks)
+    texts = data.chunk_texts(chunks)
     keys = [f"{d}:{p}:{k}" for d, p, k in zip(chunks.doc_name, chunks.page, chunks.part)]
     page_of = list(zip(chunks.doc_name, chunks.page.astype(int)))
     company = chunks.company.to_numpy()
@@ -261,12 +257,7 @@ def stage_search(cfg: dict, args) -> None:
     cands, extra = [], []
     for q, qs_name, qv in zip(qs, qsets, qvecs):
         bm_s, de_s = bm.scores(q["question"]), dense @ qv
-        found, years = data.detect_companies(q["question"]), data.detect_years(q["question"])
-        co = np.isin(company, found) if found else None
-        co_yr = co
-        if co is not None and years:
-            m = co & np.isin(period, years)
-            co_yr = m if m.any() else co
+        found, years, co, co_yr = entity_masks(q["question"], company, period)
 
         def hybrid(mask):
             return rrf([top_k(bm_s, depth, mask), top_k(de_s, depth, mask)], s["rrf_k"])
@@ -471,22 +462,6 @@ def stage_report(cfg: dict, args) -> None:
     from core import report
     (env.RESULTS / "RESULTS.md").write_text(report.render(env.RESULTS, env.FB / "results"))
     print("wrote results/RESULTS.md")
-
-
-def merge(base: dict, over: dict) -> dict:
-    out = dict(base)
-    for k, v in over.items():
-        out[k] = merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
-    return out
-
-
-def load_cfg(path) -> dict:
-    """A config may name a `base` config (relative to the project root) and override only what differs."""
-    with open(path, "rb") as f:
-        cfg = tomllib.load(f)
-    if "base" in cfg:
-        cfg = merge(load_cfg(env.BASE / cfg.pop("base")), cfg)
-    return cfg
 
 
 STAGES = {"prep": stage_prep, "index": stage_index, "embed": stage_embed, "qembed": stage_qembed,

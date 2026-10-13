@@ -29,6 +29,19 @@ def top_k(scores: np.ndarray, k: int, mask: np.ndarray | None = None) -> list[in
     return idx[np.argsort(-s[idx], kind="stable")].tolist()
 
 
+def entity_masks(question: str, company: np.ndarray, period: np.ndarray):
+    """Companies and years named in the question, and the chunk masks they give: company only, and company and
+    year (falling back to company only when no filing of that company has one of the years)."""
+    from core import data
+    found, years = data.detect_companies(question), data.detect_years(question)
+    co = np.isin(company, found) if found else None
+    co_yr = co
+    if co is not None and years:
+        m = co & np.isin(period, years)
+        co_yr = m if m.any() else co
+    return found, years, co, co_yr
+
+
 # ---------------------------------------------------------------- BM25
 
 class BM25:

@@ -150,6 +150,11 @@ def chunk_header(meta: dict, page: int) -> str:
     return f"{meta['company']} {meta['doc_type']} {meta['period']}, page {page + 1}"
 
 
+def chunk_texts(chunks) -> list[str]:
+    """What gets indexed and shown to the models: header line, then the chunk text."""
+    return (chunks["header"] + "\n" + chunks["text"]).tolist()
+
+
 def detect_companies(question: str) -> list[str]:
     found = []
     for company, rx in _ALIAS_RE:
