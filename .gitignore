@@ -1,0 +1,16 @@
+.remote
+__pycache__/
+*.pyc
+
+# server-side state (also never pushed by sync.sh)
+venv/
+tools/
+cache/
+hf/
+tmp/
+logs/
+data/
+runs/
+
+# per-question outputs: copied back by sync.sh pull, too large to commit
+results/raw/
