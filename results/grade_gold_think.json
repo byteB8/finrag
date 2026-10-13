@@ -1,0 +1,32 @@
+{
+ "ctx": "gold",
+ "label": "prompt v1 + step-by-step reasoning",
+ "experiment": {
+  "name": "reasoning",
+  "baseline": {
+   "gold": "gold",
+   "retrieved": "retrieved_dyr"
+  }
+ },
+ "questions": 150,
+ "judge": "Qwen/Qwen3-14B-AWQ",
+ "judge_unparsed": 0,
+ "correct": [
+  0.6,
+  0.52,
+  0.68
+ ],
+ "incorrect": [
+  0.14666666666666667,
+  0.09333333333333334,
+  0.20666666666666667
+ ],
+ "refusal": [
+  0.25333333333333335,
+  0.18666666666666668,
+  0.32666666666666666
+ ],
+ "answers_unparsed": 29,
+ "valid_citations": 120,
+ "with_ungrounded_numbers": 89
+}

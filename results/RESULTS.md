@@ -54,6 +54,29 @@ Verdicts from an LLM judge (Qwen3-14B-AWQ) against the analysts' reference answe
 
 Concurrent: 0.7 questions/s; wall time p50 10296.9 ms, p95 17900.6 ms.
 
+## Reasoning experiment (company-level dev/test split)
+
+Each arm against prompt v1 on the same questions; split frozen before any arm ran (`results/split.json`, 75 dev / 75 test questions, no company in both). Arms frozen (`results/experiment_frozen.json`); the test half was revealed once, after that.
+
+| arm | context | half (n) | v1 correct % | arm correct % | difference [95% CI] | p | output tokens (arm vs v1) |
+|---|---|---|---|---|---|---|---|
+| prompt v1 + calculator tool | evidence pages | dev (75) | 60.0 | 66.7 | +6.7 [-1.3, +16.0] | 0.16 | 325 vs 166 |
+| prompt v1 + calculator tool | evidence pages | test (75) | 68.0 | 68.0 | +0.0 [-8.0, +8.0] | 1.00 | 325 vs 166 |
+| prompt v1 + calculator tool, planner reasons first | evidence pages | dev (75) | 60.0 | 66.7 | +6.7 [-2.7, +16.0] | 0.23 | 376 vs 166 |
+| prompt v1 + calculator tool, planner reasons first | evidence pages | test (75) | 68.0 | 73.3 | +5.3 [-4.0, +14.7] | 0.31 | 376 vs 166 |
+| prompt v1 + step-by-step reasoning | evidence pages | dev (75) | 60.0 | 65.3 | +5.3 [-6.7, +17.3] | 0.43 | 5852 vs 166 |
+| prompt v1 + step-by-step reasoning | evidence pages | test (75) | 68.0 | 54.7 | -13.3 [-25.3, -1.3] | 0.04 | 5852 vs 166 |
+| prompt v1 + unit/rounding rule | evidence pages | dev (75) | 60.0 | 64.0 | +4.0 [-2.7, +10.7] | 0.33 | 163 vs 166 |
+| prompt v1 + unit/rounding rule | evidence pages | test (75) | 68.0 | 74.7 | +6.7 [-1.3, +14.7] | 0.17 | 163 vs 166 |
+| prompt v1 + calculator tool | retrieved | dev (75) | 60.0 | 54.7 | -5.3 [-14.7, +4.0] | 0.34 | 374 vs 186 |
+| prompt v1 + calculator tool | retrieved | test (75) | 61.3 | 66.7 | +5.3 [-1.3, +13.3] | 0.20 | 374 vs 186 |
+| prompt v1 + calculator tool, planner reasons first | retrieved | dev (75) | 60.0 | 57.3 | -2.7 [-10.7, +4.0] | 0.58 | 434 vs 186 |
+| prompt v1 + calculator tool, planner reasons first | retrieved | test (75) | 61.3 | 54.7 | -6.7 [-16.0, +4.0] | 0.23 | 434 vs 186 |
+| prompt v1 + step-by-step reasoning | retrieved | dev (75) | 60.0 | 64.0 | +4.0 [-9.3, +17.3] | 0.62 | 6561 vs 186 |
+| prompt v1 + step-by-step reasoning | retrieved | test (75) | 61.3 | 46.7 | -14.7 [-26.7, -4.0] | 0.02 | 6561 vs 186 |
+| prompt v1 + unit/rounding rule | retrieved | dev (75) | 60.0 | 56.0 | -4.0 [-12.0, +4.0] | 0.39 | 178 vs 186 |
+| prompt v1 + unit/rounding rule | retrieved | test (75) | 61.3 | 60.0 | -1.3 [-8.0, +5.3] | 0.83 | 178 vs 186 |
+
 ## Abstention
 
 Retrieved context. *Declined* = the answer's `answerable` flag is false (rule *flag*) or its text says the information is missing (rule *text*). Unanswerable questions: 50 FinanceBench questions with every year moved 10 years later or the company replaced by one outside the corpus. Selective accuracy = correct among answered questions.

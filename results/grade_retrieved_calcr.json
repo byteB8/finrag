@@ -1,0 +1,32 @@
+{
+ "ctx": "retrieved",
+ "label": "prompt v1 + calculator tool, planner reasons first",
+ "experiment": {
+  "name": "reasoning",
+  "baseline": {
+   "gold": "gold",
+   "retrieved": "retrieved_dyr"
+  }
+ },
+ "questions": 150,
+ "judge": "Qwen/Qwen3-14B-AWQ",
+ "judge_unparsed": 0,
+ "correct": [
+  0.56,
+  0.48,
+  0.64
+ ],
+ "incorrect": [
+  0.38,
+  0.30666666666666664,
+  0.46
+ ],
+ "refusal": [
+  0.06,
+  0.02666666666666667,
+  0.1
+ ],
+ "answers_unparsed": 2,
+ "valid_citations": 143,
+ "with_ungrounded_numbers": 105
+}

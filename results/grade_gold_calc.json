@@ -1,0 +1,32 @@
+{
+ "ctx": "gold",
+ "label": "prompt v1 + calculator tool",
+ "experiment": {
+  "name": "reasoning",
+  "baseline": {
+   "gold": "gold",
+   "retrieved": "retrieved_dyr"
+  }
+ },
+ "questions": 150,
+ "judge": "Qwen/Qwen3-14B-AWQ",
+ "judge_unparsed": 0,
+ "correct": [
+  0.6733333333333333,
+  0.5933333333333334,
+  0.7466666666666667
+ ],
+ "incorrect": [
+  0.25333333333333335,
+  0.18666666666666668,
+  0.32666666666666666
+ ],
+ "refusal": [
+  0.07333333333333333,
+  0.03333333333333333,
+  0.12
+ ],
+ "answers_unparsed": 0,
+ "valid_citations": 138,
+ "with_ungrounded_numbers": 96
+}

@@ -1,0 +1,32 @@
+{
+ "ctx": "retrieved",
+ "label": "prompt v1 + unit/rounding rule",
+ "experiment": {
+  "name": "reasoning",
+  "baseline": {
+   "gold": "gold",
+   "retrieved": "retrieved_dyr"
+  }
+ },
+ "questions": 150,
+ "judge": "Qwen/Qwen3-14B-AWQ",
+ "judge_unparsed": 0,
+ "correct": [
+  0.58,
+  0.5,
+  0.66
+ ],
+ "incorrect": [
+  0.36666666666666664,
+  0.29333333333333333,
+  0.44666666666666666
+ ],
+ "refusal": [
+  0.05333333333333334,
+  0.02,
+  0.09333333333333334
+ ],
+ "answers_unparsed": 0,
+ "valid_citations": 146,
+ "with_ungrounded_numbers": 100
+}

@@ -1,0 +1,8 @@
+{
+ "questions": 150,
+ "seconds": 2176.7,
+ "gpu": 1,
+ "mean_output_tokens": 5851.8,
+ "cut_off": 29,
+ "unparsed": 29
+}
