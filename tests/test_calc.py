@@ -39,6 +39,12 @@ class SafeEval(unittest.TestCase):
         out = calc.run(plan)
         self.assertAlmostEqual(out[2]["value"], 6098 / 17606 - 5802 / 15785)
 
+    def test_reasoned_plan_schema_adds_reasoning_first(self):
+        props = list(calc.PLAN_SCHEMA_REASONED["properties"])
+        self.assertEqual(props[0], "reasoning")
+        self.assertEqual(calc.PLAN_SCHEMA_REASONED["required"][0], "reasoning")
+        self.assertNotIn("reasoning", calc.PLAN_SCHEMA["properties"])          # the original arm is unchanged
+
     def test_no_calculation_means_no_block(self):
         self.assertEqual(calc.results_block({"figures": [], "calculations": []}, calc.run({"figures": [], "calculations": []})), "")
         self.assertEqual(calc.run(None), [])

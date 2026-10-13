@@ -378,8 +378,11 @@ def stage_gen(cfg: dict, args) -> None:
         plan_tokens = [0] * len(qs)
         if g.get("method") == "calc":
             # pass 1: figures and formulas (JSON); Python evaluates; pass 2 answers with the results appended
-            plan_convs = [[{"role": "system", "content": calc.PLAN_SYSTEM}, c[1]] for c in convs]
-            plans = llm.chat(model, plan_convs, llm.json_params(calc.PLAN_SCHEMA, g["max_tokens"]))
+            reasoned = g.get("plan") == "reasoned"
+            plan_system = calc.PLAN_SYSTEM_REASONED if reasoned else calc.PLAN_SYSTEM
+            plan_schema = calc.PLAN_SCHEMA_REASONED if reasoned else calc.PLAN_SCHEMA
+            plan_convs = [[{"role": "system", "content": plan_system}, c[1]] for c in convs]
+            plans = llm.chat(model, plan_convs, llm.json_params(plan_schema, g["max_tokens"]))
             for k, (c, o) in enumerate(zip(convs, plans)):
                 plan = llm.parse_json(o["text"])
                 results = calc.run(plan)

@@ -34,6 +34,15 @@ PLAN_SCHEMA = {
     "additionalProperties": False,
 }
 
+# v2 ("reasoned" plan), from dev-half losses with retrieved context: the plan picked the wrong line item or
+# segment (Walmart's US segment for a consolidated margin; the wrong Adobe operating-income line). The plan now
+# starts with a short justification of which figures fit the question.
+PLAN_SYSTEM_REASONED = PLAN_SYSTEM + """
+- First, in "reasoning", say in at most three sentences which line items and fiscal periods match the question's definition and which excerpt holds each; use consolidated company totals unless the question asks about a segment."""
+
+PLAN_SCHEMA_REASONED = {**PLAN_SCHEMA, "properties": {"reasoning": {"type": "string"}, **PLAN_SCHEMA["properties"]},
+                        "required": ["reasoning", *PLAN_SCHEMA["required"]]}
+
 _BIN = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
         ast.Pow: operator.pow}
 _UNARY = {ast.USub: operator.neg, ast.UAdd: operator.pos}

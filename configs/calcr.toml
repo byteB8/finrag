@@ -1,0 +1,8 @@
+# Reasoning experiment, arm "calcr": the calculator tool with a reasoned plan (core/calc.py,
+# PLAN_SYSTEM_REASONED). A dev-half iteration on "calc" after its retrieved-context losses (notebook Entry 12).
+base = "configs/calc.toml"
+tag = "_calcr"
+label = "prompt v1 + calculator tool, planner reasons first"
+
+[gen]
+plan = "reasoned"
