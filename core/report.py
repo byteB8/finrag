@@ -10,7 +10,26 @@ def _pct(ci) -> str:
     return f"{100 * m:.1f} [{100 * lo:.1f}, {100 * hi:.1f}]"
 
 
-def render(results: Path) -> str:
+PAPER_SETTINGS = {"sharedStore": "one index over all filings", "singleStore": "the question's filing only",
+                  "oracle": "labelled evidence pages given"}
+
+
+def paper_baselines(fb_results: Path) -> list[dict]:
+    """Correct / incorrect / refusal shares of the FinanceBench paper's human-graded runs, per model and setting."""
+    out = []
+    for f in sorted(fb_results.glob("*.jsonl")):
+        model, _, mode = f.stem.partition("_")
+        if mode not in PAPER_SETTINGS:
+            continue
+        labels = [json.loads(line)["label"] for line in f.read_text().splitlines() if line.strip()]
+        n = len(labels)
+        out.append({"model": model, "setting": mode, "n": n,
+                    "correct": labels.count("Correct Answer") / n, "incorrect": labels.count("Incorrect Answer") / n,
+                    "refusal": labels.count("Refusal") / n})
+    return out
+
+
+def render(results: Path, fb_results: Path | None = None) -> str:
     out = ["# Results", "", "FinanceBench open-source sample: 150 questions over 368 filings. Brackets are 95% "
            "bootstrap intervals over questions.", ""]
     path = results / "data_check.json"
@@ -48,4 +67,13 @@ def render(results: Path) -> str:
         out += ["## Answers", "", "Verdicts from an LLM judge against the analysts' reference answers.", "",
                 "| context | correct | incorrect | refusal | valid citations | with numbers not in cited text |",
                 "|---|---|---|---|---|---|", *rows, ""]
+    if fb_results is not None and fb_results.exists():
+        base = paper_baselines(fb_results)
+        if base:
+            out += ["## FinanceBench paper baselines", "",
+                    "Human-graded runs released with the benchmark (same 150 questions).", "",
+                    "| model | setting | correct | incorrect | refusal |", "|---|---|---|---|---|"]
+            out += [f"| {b['model']} | {PAPER_SETTINGS[b['setting']]} | {100 * b['correct']:.1f} | "
+                    f"{100 * b['incorrect']:.1f} | {100 * b['refusal']:.1f} |" for b in base]
+            out.append("")
     return "\n".join(out) + "\n"

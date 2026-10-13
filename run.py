@@ -328,7 +328,7 @@ def stage_grade(cfg: dict, args) -> None:
 
 def stage_report(cfg: dict, args) -> None:
     from core import report
-    (env.RESULTS / "RESULTS.md").write_text(report.render(env.RESULTS))
+    (env.RESULTS / "RESULTS.md").write_text(report.render(env.RESULTS, env.FB / "results"))
     print("wrote results/RESULTS.md")
 
 
