@@ -55,6 +55,11 @@ def read_jsonl(path) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def run_name(cfg: dict, args) -> str:
+    """Output name of a gen/grade run: the context plus the config's optional tag (e.g. retrieved_v2)."""
+    return args.ctx + cfg.get("tag", "")
+
+
 def gold_pages(q: dict) -> list[tuple[str, int]]:
     return sorted({(e.get("doc_name") or e.get("evidence_doc_name"), int(e["evidence_page_num"]))
                    for e in q["evidence"]})
@@ -283,7 +288,8 @@ def stage_gen(cfg: dict, args) -> None:
                          limit_mm_per_prompt={"image": 0, "video": 0})
     params = llm.json_params(answer.SCHEMA, g["max_tokens"])
     t0 = time.time()
-    outs = llm.chat(model, [answer.build_messages(q["question"], p) for q, p in zip(qs, passages)], params,
+    prompt = g.get("prompt", "v1")
+    outs = llm.chat(model, [answer.build_messages(q["question"], p, prompt) for q, p in zip(qs, passages)], params,
                     thinking=g.get("thinking", False))
     secs = time.time() - t0
     rows = []
@@ -293,7 +299,7 @@ def stage_gen(cfg: dict, args) -> None:
                      "answer": (parsed or {}).get("answer", o["text"]), "answerable": (parsed or {}).get("answerable"),
                      "reasoning": (parsed or {}).get("reasoning"), "check": answer.check(parsed, len(p), p),
                      "passages": [h for h, _ in p], **{k: o[k] for k in ("finish", "prompt_tokens", "output_tokens")}})
-    write_jsonl(env.RAW / f"gen_{args.ctx}.jsonl", rows)
+    write_jsonl(env.RAW / f"gen_{run_name(cfg, args)}.jsonl", rows)
     print(f"{len(rows)} answers on GPU {gpu} in {secs:.0f}s "
           f"({sum(r['output_tokens'] for r in rows) / secs:.0f} output tok/s)", flush=True)
 
@@ -302,7 +308,7 @@ def stage_grade(cfg: dict, args) -> None:
     from core import data, grade, llm, metrics
 
     j = cfg["grade"]
-    rows = read_jsonl(env.RAW / f"gen_{args.ctx}.jsonl")
+    rows = read_jsonl(env.RAW / f"gen_{run_name(cfg, args)}.jsonl")
     refs = {q["financebench_id"]: q for q in data.load_questions(env.FB)}
     gpu, util = env.pick_gpu(need_mib=j["need_mib"])
     env.use_gpu(gpu)
@@ -315,7 +321,7 @@ def stage_grade(cfg: dict, args) -> None:
         parsed = llm.parse_json(o["text"])
         graded.append({"id": r["id"], "verdict": grade.verdict_of(parsed), "reason": (parsed or {}).get("reason"),
                        "judge_parsed": parsed is not None})
-    write_jsonl(env.RAW / f"grade_{args.ctx}.jsonl", graded)
+    write_jsonl(env.RAW / f"grade_{run_name(cfg, args)}.jsonl", graded)
     summary = {"questions": len(graded), "judge": j["model"], "judge_unparsed": sum(not g["judge_parsed"] for g in graded)}
     for v in grade.VERDICTS:
         summary[v] = metrics.bootstrap_ci([g["verdict"] == v for g in graded])
@@ -323,7 +329,7 @@ def stage_grade(cfg: dict, args) -> None:
     summary["answers_unparsed"] = sum(not c["parsed"] for c in checks)
     summary["valid_citations"] = sum(c["valid_citations"] for c in checks)
     summary["with_ungrounded_numbers"] = sum(bool(c["ungrounded_numbers"]) for c in checks)
-    write_json(env.RESULTS / f"grade_{args.ctx}.json", summary)
+    write_json(env.RESULTS / f"grade_{run_name(cfg, args)}.json", summary)
     print(json.dumps({k: v for k, v in summary.items()}, indent=1), flush=True)
 
 
@@ -332,7 +338,7 @@ def stage_grade(cfg: dict, args) -> None:
 def stage_sheet(cfg: dict, args) -> None:
     from core import data, review
 
-    rows = {r["id"]: r for r in read_jsonl(env.RAW / f"gen_{args.ctx}.jsonl")}
+    rows = {r["id"]: r for r in read_jsonl(env.RAW / f"gen_{run_name(cfg, args)}.jsonl")}
     qs = {q["financebench_id"]: q for q in data.load_questions(env.FB)}
     ids = review.sample_ids(sorted(rows), args.n)
     passages = contexts(cfg, args.ctx, [qs[i] for i in ids])
@@ -340,19 +346,19 @@ def stage_sheet(cfg: dict, args) -> None:
               "justification": qs[i].get("justification"), "answer": rows[i]["answer"],
               "reasoning": rows[i].get("reasoning"), "passages": [list(p) for p in ps]}
              for i, ps in zip(ids, passages)]
-    out = env.RESULTS / "review" / f"sheet_{args.ctx}.html"
+    out = env.RESULTS / "review" / f"sheet_{run_name(cfg, args)}.html"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(review.render_sheet(items, args.ctx))
+    out.write_text(review.render_sheet(items, run_name(cfg, args)))
     print(f"wrote {out.relative_to(env.BASE)} ({len(items)} answers)")
 
 
 def stage_agree(cfg: dict, args) -> None:
     from core import review
 
-    labels = json.loads((env.RESULTS / "review" / f"labels_{args.ctx}.json").read_text())["labels"]
-    judge = {g["id"]: g["verdict"] for g in read_jsonl(env.RAW / f"grade_{args.ctx}.jsonl")}
+    labels = json.loads((env.RESULTS / "review" / f"labels_{run_name(cfg, args)}.json").read_text())["labels"]
+    judge = {g["id"]: g["verdict"] for g in read_jsonl(env.RAW / f"grade_{run_name(cfg, args)}.jsonl")}
     res = review.agreement(labels, judge)
-    write_json(env.RESULTS / f"agreement_{args.ctx}.json", res)
+    write_json(env.RESULTS / f"agreement_{run_name(cfg, args)}.json", res)
     print(json.dumps({k: v for k, v in res.items() if k != "disagreements"}, indent=1))
 
 
@@ -362,6 +368,22 @@ def stage_report(cfg: dict, args) -> None:
     from core import report
     (env.RESULTS / "RESULTS.md").write_text(report.render(env.RESULTS, env.FB / "results"))
     print("wrote results/RESULTS.md")
+
+
+def merge(base: dict, over: dict) -> dict:
+    out = dict(base)
+    for k, v in over.items():
+        out[k] = merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
+
+
+def load_cfg(path) -> dict:
+    """A config may name a `base` config (relative to the project root) and override only what differs."""
+    with open(path, "rb") as f:
+        cfg = tomllib.load(f)
+    if "base" in cfg:
+        cfg = merge(load_cfg(env.BASE / cfg.pop("base")), cfg)
+    return cfg
 
 
 STAGES = {"prep": stage_prep, "index": stage_index, "search": stage_search, "gen": stage_gen,
@@ -377,8 +399,7 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=30, help="sample size for the hand-grading sheet")
     args = ap.parse_args()
     env.set_defaults()
-    with open(env.BASE / args.cfg, "rb") as f:
-        cfg = tomllib.load(f)
+    cfg = load_cfg(env.BASE / args.cfg)
     t0 = time.time()
     STAGES[args.stage](cfg, args)
     print(f"[{args.stage}] done in {time.time() - t0:.0f}s", flush=True)

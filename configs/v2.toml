@@ -1,0 +1,6 @@
+# The MVP with answer prompt v2 (see core/answer.py); outputs go to *_v2 files beside the v1 ones.
+base = "configs/mvp.toml"
+tag = "_v2"
+
+[gen]
+prompt = "v2"

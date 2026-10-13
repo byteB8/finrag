@@ -11,6 +11,22 @@ Rules:
 - In "citations", list the numbers of the excerpts that contain the figures or statements you used.
 - If the excerpts do not contain what the question needs, set "answerable" to false and say in "answer" what is missing."""
 
+# v2: written after reading v1's errors on the labelled-evidence run (refusals on judgement questions, fiscal
+# years that do not end in December, line items under other names). Results with v2 are therefore tuned on
+# the same 150 questions and are reported as such.
+SYSTEM_V2 = """You are a financial analyst answering questions about public companies from excerpts of their SEC filings and earnings reports.
+Rules:
+- Use only the numbered excerpts for company figures. Standard financial-analysis definitions and formulas may be applied to them.
+- Fiscal years can end in any month: a balance sheet dated at a company's fiscal year end (for example June 30, 2020 for a June year end) is that fiscal year's year-end balance sheet.
+- Line items go by several names: cost of sales = cost of goods sold; property, plant and equipment, net = net PP&E; free cash flow = cash from operations minus capital expenditures; accounts receivable, net = net AR.
+- For judgement questions (for example "is the business capital-intensive?" or "is the margin improving?"), compute the relevant ratios from the figures, then give a clear yes or no with the numbers behind it.
+- In "reasoning", note the figures you use and any calculation, in at most three sentences.
+- In "answer", give the final answer in one or two sentences, with units (for example USD millions) and the fiscal period.
+- In "citations", list the numbers of the excerpts that contain the figures or statements you used.
+- Set "answerable" to false only when a figure the answer needs is absent from the excerpts, and then say in "answer" what is missing."""
+
+PROMPTS = {"v1": SYSTEM, "v2": SYSTEM_V2}
+
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -24,10 +40,10 @@ SCHEMA = {
 }
 
 
-def build_messages(question: str, passages: list[tuple[str, str]]) -> list[dict]:
+def build_messages(question: str, passages: list[tuple[str, str]], prompt: str = "v1") -> list[dict]:
     """`passages` are (header, text) pairs, numbered from 1 in the prompt."""
     blocks = "\n\n".join(f"[{i}] {header}\n{text}" for i, (header, text) in enumerate(passages, 1))
-    return [{"role": "system", "content": SYSTEM},
+    return [{"role": "system", "content": PROMPTS[prompt]},
             {"role": "user", "content": f"Question: {question}\n\nExcerpts:\n\n{blocks}"}]
 
 

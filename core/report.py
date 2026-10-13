@@ -29,6 +29,13 @@ def paper_baselines(fb_results: Path) -> list[dict]:
     return out
 
 
+def run_label(name: str) -> str:
+    """retrieved -> 'retrieved chunks'; gold_v2 -> 'labelled evidence pages (oracle), prompt v2'."""
+    ctx, _, tag = name.partition("_")
+    label = {"retrieved": "retrieved chunks", "gold": "labelled evidence pages (oracle)"}.get(ctx, ctx)
+    return f"{label}, prompt {tag}" if tag else f"{label}, prompt v1"
+
+
 def render(results: Path, fb_results: Path | None = None) -> str:
     out = ["# Results", "", "FinanceBench open-source sample: 150 questions over 368 filings. Brackets are 95% "
            "bootstrap intervals over questions.", ""]
@@ -57,23 +64,20 @@ def render(results: Path, fb_results: Path | None = None) -> str:
                 f"company {c['includes_gold']}, none found {c['none']}, wrong {c['wrong_only']} "
                 f"(of {d['questions']}).", ""]
     rows = []
-    for ctx, label in (("retrieved", "retrieved chunks"), ("gold", "labelled evidence pages (oracle)")):
-        path = results / f"grade_{ctx}.json"
-        if path.exists():
-            g = json.loads(path.read_text())
-            rows.append(f"| {label} | {_pct(g['correct'])} | {_pct(g['incorrect'])} | {_pct(g['refusal'])} | "
-                        f"{g['valid_citations']}/{g['questions']} | {g['with_ungrounded_numbers']} |")
+    for path in sorted(results.glob("grade_*.json")):
+        g = json.loads(path.read_text())
+        rows.append(f"| {run_label(path.stem[len('grade_'):])} | {_pct(g['correct'])} | {_pct(g['incorrect'])} | "
+                    f"{_pct(g['refusal'])} | {g['valid_citations']}/{g['questions']} | {g['with_ungrounded_numbers']} |")
     if rows:
         out += ["## Answers", "", "Verdicts from an LLM judge against the analysts' reference answers.", "",
                 "| context | correct | incorrect | refusal | valid citations | with numbers not in cited text |",
                 "|---|---|---|---|---|---|", *rows, ""]
-    for ctx in ("retrieved", "gold"):
-        path = results / f"agreement_{ctx}.json"
+    for path in sorted(results.glob("agreement_*.json")):
         if path.exists():
             a = json.loads(path.read_text())
             c = a["correct_rate"]
             out += ["## Judge check", "",
-                    f"On {a['n']} randomly sampled answers ({ctx} context), graded blind by hand, the judge agreed on "
+                    f"On {a['n']} randomly sampled answers ({run_label(path.stem[len('agreement_'):])}), graded blind by hand, the judge agreed on "
                     f"{a['agree']} (Cohen's kappa {a['kappa']}). Share graded correct on that sample: by hand "
                     f"{100 * c['human']:.1f}%, by the judge {100 * c['judge']:.1f}%.", ""]
     if fb_results is not None and fb_results.exists():
