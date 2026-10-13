@@ -12,7 +12,7 @@ import operator
 
 PLAN_SYSTEM = """You prepare the calculations a financial analyst needs to answer a question from numbered excerpts of SEC filings.
 - In "figures", list every number from the excerpts that the answer needs: a short snake_case name (for example cogs_2017), the value exactly as printed in the excerpt's own units (no commas or currency signs; a number in parentheses is negative), and the excerpt number.
-- In "calculations", write each value the question asks for as an arithmetic expression over those names (operators + - * / ** and parentheses; functions abs, min, max, round, sqrt), with a short label. Follow the question's own definition of a metric exactly when it gives one; otherwise use the standard definition.
+- In "calculations", write each value the question asks for as an arithmetic expression over those names (operators + - * / ** and parentheses; functions abs, min, max, round, sqrt), with a short snake_case label. A later calculation may use an earlier one by its label. Follow the question's own definition of a metric exactly when it gives one; otherwise use the standard definition.
 - If the question needs no arithmetic, leave "calculations" empty."""
 
 PLAN_SCHEMA = {
@@ -26,7 +26,7 @@ PLAN_SCHEMA = {
             "required": ["name", "value", "excerpt"], "additionalProperties": False}},
         "calculations": {"type": "array", "maxItems": 4, "items": {
             "type": "object",
-            "properties": {"label": {"type": "string", "maxLength": 80},
+            "properties": {"label": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,40}$"},
                            "expression": {"type": "string", "maxLength": 300}},
             "required": ["label", "expression"], "additionalProperties": False}},
     },
@@ -76,7 +76,9 @@ def run(plan: dict | None) -> list[dict]:
     out = []
     for c in plan.get("calculations", []):
         try:
-            out.append({"label": c["label"], "expression": c["expression"], "value": safe_eval(c["expression"], names)})
+            value = safe_eval(c["expression"], names)
+            out.append({"label": c["label"], "expression": c["expression"], "value": value})
+            names.setdefault(c["label"], value)          # later calculations may build on this one
         except (ValueError, SyntaxError, ZeroDivisionError, OverflowError, TypeError) as e:
             out.append({"label": c["label"], "expression": c["expression"], "error": str(e) or type(e).__name__})
     return out

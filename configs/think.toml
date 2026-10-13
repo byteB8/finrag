@@ -7,5 +7,6 @@ experiment = {name = "reasoning", baseline = {gold = "gold", retrieved = "retrie
 
 [gen]
 thinking = true
-max_tokens = 8192
+max_tokens = 12288       # 8192 cut a dev smoke-test answer off mid-thought
+max_model_len = 20480    # room for ~4.5k-token retrieved prompts plus the thinking budget
 sampling = {temperature = 0.6, top_p = 0.95, top_k = 20, seed = 0}

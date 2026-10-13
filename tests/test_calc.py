@@ -28,6 +28,15 @@ class SafeEval(unittest.TestCase):
         self.assertIn("ratio: a / 4 = 2.5", block)
         self.assertIn("could not be computed", block)
 
+    def test_later_calculations_use_earlier_labels(self):
+        plan = {"figures": [{"name": "oi_22", "value": 6098, "excerpt": 1}, {"name": "rev_22", "value": 17606, "excerpt": 1},
+                            {"name": "oi_21", "value": 5802, "excerpt": 1}, {"name": "rev_21", "value": 15785, "excerpt": 1}],
+                "calculations": [{"label": "margin_22", "expression": "oi_22 / rev_22"},
+                                 {"label": "margin_21", "expression": "oi_21 / rev_21"},
+                                 {"label": "change", "expression": "margin_22 - margin_21"}]}
+        out = calc.run(plan)
+        self.assertAlmostEqual(out[2]["value"], 6098 / 17606 - 5802 / 15785)
+
     def test_no_calculation_means_no_block(self):
         self.assertEqual(calc.results_block({"figures": [], "calculations": []}, calc.run({"figures": [], "calculations": []})), "")
         self.assertEqual(calc.run(None), [])
