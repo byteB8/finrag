@@ -26,13 +26,16 @@ Rules:
 - Set "answerable" to false only when a figure the answer needs is absent from the excerpts, and then say in "answer" what is missing."""
 
 PROMPTS = {"v1": SYSTEM, "v2": SYSTEM_V2}
+MAX_PASSAGES = 8   # the most excerpts any prompt carries (8 retrieved chunks; at most 3 evidence pages)
 
 SCHEMA = {
     "type": "object",
     "properties": {
         "reasoning": {"type": "string"},
         "answer": {"type": "string"},
-        "citations": {"type": "array", "items": {"type": "integer"}},
+        # bounded: unbounded, greedy decoding sometimes looped ("1, 2, 1, 2, ..." or "164, 165, ...")
+        "citations": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": MAX_PASSAGES},
+                      "maxItems": MAX_PASSAGES},
         "answerable": {"type": "boolean"},
     },
     "required": ["reasoning", "answer", "citations", "answerable"],
@@ -67,7 +70,7 @@ def check(out: dict | None, n_passages: int, passages: list[tuple[str, str]]) ->
     answer appear in no cited passage (computed values such as ratios legitimately appear nowhere)."""
     if out is None:
         return {"parsed": False, "valid_citations": False, "cited": [], "ungrounded_numbers": []}
-    cited = [c for c in out.get("citations", []) if isinstance(c, int)]
+    cited = list(dict.fromkeys(c for c in out.get("citations", []) if isinstance(c, int)))   # de-duplicated
     valid = bool(cited) and all(1 <= c <= n_passages for c in cited)
     source = " ".join(passages[c - 1][1] for c in cited if 1 <= c <= n_passages)
     have = numbers(source)
