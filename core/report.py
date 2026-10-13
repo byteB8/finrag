@@ -103,7 +103,10 @@ def render(results: Path, fb_results: Path | None = None) -> str:
     if rows:
         out += ["## Answers", "", "Verdicts from an LLM judge (Qwen3-14B-AWQ) against the analysts' reference answers. "
                 "The judge files most answers that say the information is missing under *incorrect*, so the "
-                "*says info missing* column counts them from the answer text.", "",
+                "*says info missing* column counts them from the answer text. *Numbers not in cited text* counts answers with "
+                "any number (in the answer or its reasoning) that appears as written in no cited excerpt; computed "
+                "values (ratios, sums, unit conversions) count too, so it is a coarse upper bound on ungrounded "
+                "numbers, not a hallucination rate.", "",
                 "| run | correct | incorrect | refusal | says info missing | valid citations | with numbers not in cited text |",
                 "|---|---|---|---|---|---|---|", *rows, ""]
     ab = prompt_ab(results)
