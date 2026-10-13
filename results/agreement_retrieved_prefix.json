@@ -1,0 +1,57 @@
+{
+ "n": 30,
+ "agree": 25,
+ "kappa": 0.686,
+ "binary": {
+  "agree": 27,
+  "kappa": 0.8
+ },
+ "confusion": {
+  "correct": {
+   "correct": 14,
+   "incorrect": 2,
+   "refusal": 0
+  },
+  "incorrect": {
+   "correct": 1,
+   "incorrect": 11,
+   "refusal": 2
+  },
+  "refusal": {
+   "correct": 0,
+   "incorrect": 0,
+   "refusal": 0
+  }
+ },
+ "correct_rate": {
+  "human": 0.5333333333333333,
+  "judge": 0.5
+ },
+ "disagreements": [
+  {
+   "id": "financebench_id_00494",
+   "human": "correct",
+   "judge": "incorrect"
+  },
+  {
+   "id": "financebench_id_06655",
+   "human": "correct",
+   "judge": "incorrect"
+  },
+  {
+   "id": "financebench_id_00438",
+   "human": "incorrect",
+   "judge": "refusal"
+  },
+  {
+   "id": "financebench_id_01091",
+   "human": "incorrect",
+   "judge": "correct"
+  },
+  {
+   "id": "financebench_id_01290",
+   "human": "incorrect",
+   "judge": "refusal"
+  }
+ ]
+}

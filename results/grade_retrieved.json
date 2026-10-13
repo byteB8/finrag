@@ -1,0 +1,23 @@
+{
+ "questions": 150,
+ "judge": "Qwen/Qwen3-14B-AWQ",
+ "judge_unparsed": 0,
+ "correct": [
+  0.5733333333333334,
+  0.49333333333333335,
+  0.6533333333333333
+ ],
+ "incorrect": [
+  0.36,
+  0.2866666666666667,
+  0.44
+ ],
+ "refusal": [
+  0.06666666666666667,
+  0.03333333333333333,
+  0.10666666666666667
+ ],
+ "answers_unparsed": 0,
+ "valid_citations": 144,
+ "with_ungrounded_numbers": 98
+}

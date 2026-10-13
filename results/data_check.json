@@ -1,0 +1,2094 @@
+{
+ "pdfs": 368,
+ "pages": 54120,
+ "chunks": 111561,
+ "chunk_tokens": {
+  "max": 512,
+  "overlap": 64
+ },
+ "evidence_items": 189,
+ "on_labelled_page": 184,
+ "on_neighbouring_page": 0,
+ "missing_doc": 0,
+ "items": [
+  {
+   "id": "financebench_id_03029",
+   "doc": "3M_2018_10K",
+   "page": 59,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.531
+   }
+  },
+  {
+   "id": "financebench_id_04672",
+   "doc": "3M_2018_10K",
+   "page": 57,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.555
+   }
+  },
+  {
+   "id": "financebench_id_00499",
+   "doc": "3M_2022_10K",
+   "page": 47,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.607
+   }
+  },
+  {
+   "id": "financebench_id_00499",
+   "doc": "3M_2022_10K",
+   "page": 49,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.544
+   }
+  },
+  {
+   "id": "financebench_id_00499",
+   "doc": "3M_2022_10K",
+   "page": 51,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.517
+   }
+  },
+  {
+   "id": "financebench_id_01226",
+   "doc": "3M_2022_10K",
+   "page": 26,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.708
+   }
+  },
+  {
+   "id": "financebench_id_01865",
+   "doc": "3M_2022_10K",
+   "page": 24,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.81
+   }
+  },
+  {
+   "id": "financebench_id_00807",
+   "doc": "3M_2023Q2_10Q",
+   "page": 4,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.552
+   }
+  },
+  {
+   "id": "financebench_id_00941",
+   "doc": "3M_2023Q2_10Q",
+   "page": 0,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.18
+   }
+  },
+  {
+   "id": "financebench_id_01858",
+   "doc": "3M_2023Q2_10Q",
+   "page": 61,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.545
+   }
+  },
+  {
+   "id": "financebench_id_02987",
+   "doc": "ACTIVISIONBLIZZARD_2019_10K",
+   "page": 68,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.479
+   }
+  },
+  {
+   "id": "financebench_id_02987",
+   "doc": "ACTIVISIONBLIZZARD_2019_10K",
+   "page": 69,
+   "doc_found": true,
+   "overlap": 0.992,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.517
+   }
+  },
+  {
+   "id": "financebench_id_07966",
+   "doc": "ACTIVISIONBLIZZARD_2019_10K",
+   "page": 69,
+   "doc_found": true,
+   "overlap": 0.992,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.517
+   }
+  },
+  {
+   "id": "financebench_id_07966",
+   "doc": "ACTIVISIONBLIZZARD_2019_10K",
+   "page": 72,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.458
+   }
+  },
+  {
+   "id": "financebench_id_04735",
+   "doc": "ADOBE_2015_10K",
+   "page": 58,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.342
+   }
+  },
+  {
+   "id": "financebench_id_04735",
+   "doc": "ADOBE_2015_10K",
+   "page": 62,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.363
+   }
+  },
+  {
+   "id": "financebench_id_07507",
+   "doc": "ADOBE_2016_10K",
+   "page": 61,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.391
+   }
+  },
+  {
+   "id": "financebench_id_03856",
+   "doc": "ADOBE_2017_10K",
+   "page": 56,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.344
+   }
+  },
+  {
+   "id": "financebench_id_03856",
+   "doc": "ADOBE_2017_10K",
+   "page": 60,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.378
+   }
+  },
+  {
+   "id": "financebench_id_00438",
+   "doc": "ADOBE_2022_10K",
+   "page": 53,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.507
+   }
+  },
+  {
+   "id": "financebench_id_00591",
+   "doc": "ADOBE_2022_10K",
+   "page": 56,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.358
+   }
+  },
+  {
+   "id": "financebench_id_01319",
+   "doc": "AES_2022_10K",
+   "page": 131,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.516
+   }
+  },
+  {
+   "id": "financebench_id_00540",
+   "doc": "AES_2022_10K",
+   "page": 129,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.466
+   }
+  },
+  {
+   "id": "financebench_id_00540",
+   "doc": "AES_2022_10K",
+   "page": 131,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.548
+   }
+  },
+  {
+   "id": "financebench_id_10420",
+   "doc": "AES_2022_10K",
+   "page": 129,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.441
+   }
+  },
+  {
+   "id": "financebench_id_10420",
+   "doc": "AES_2022_10K",
+   "page": 131,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.613
+   }
+  },
+  {
+   "id": "financebench_id_06655",
+   "doc": "AMAZON_2017_10K",
+   "page": 37,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.462
+   }
+  },
+  {
+   "id": "financebench_id_06655",
+   "doc": "AMAZON_2017_10K",
+   "page": 39,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.493
+   }
+  },
+  {
+   "id": "financebench_id_08135",
+   "doc": "AMAZON_2017_10K",
+   "page": 37,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.462
+   }
+  },
+  {
+   "id": "financebench_id_08286",
+   "doc": "AMAZON_2019_10K",
+   "page": 37,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.467
+   }
+  },
+  {
+   "id": "financebench_id_03882",
+   "doc": "AMCOR_2020_10K",
+   "page": 49,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.723
+   }
+  },
+  {
+   "id": "financebench_id_01935",
+   "doc": "AMCOR_2022_8K_dated-2022-07-01",
+   "page": 1,
+   "doc_found": true,
+   "overlap": 0.988,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.849
+   }
+  },
+  {
+   "id": "financebench_id_00799",
+   "doc": "AMCOR_2023_10K",
+   "page": 51,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.616
+   }
+  },
+  {
+   "id": "financebench_id_01079",
+   "doc": "AMCOR_2023_10K",
+   "page": 63,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.54
+   }
+  },
+  {
+   "id": "financebench_id_01148",
+   "doc": "AMCOR_2023_10K",
+   "page": 4,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.5
+   }
+  },
+  {
+   "id": "financebench_id_00684",
+   "doc": "AMCOR_2023_10K",
+   "page": 49,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.625
+   }
+  },
+  {
+   "id": "financebench_id_01936",
+   "doc": "AMCOR_2023Q2_10Q",
+   "page": 14,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.529
+   }
+  },
+  {
+   "id": "financebench_id_01928",
+   "doc": "AMCOR_2023Q4_EARNINGS",
+   "page": 11,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.819
+   }
+  },
+  {
+   "id": "financebench_id_01930",
+   "doc": "AMCOR_2023Q4_EARNINGS",
+   "page": 9,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.726
+   }
+  },
+  {
+   "id": "financebench_id_03069",
+   "doc": "AMD_2015_10K",
+   "page": 55,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.471
+   }
+  },
+  {
+   "id": "financebench_id_03069",
+   "doc": "AMD_2015_10K",
+   "page": 59,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.498
+   }
+  },
+  {
+   "id": "financebench_id_00222",
+   "doc": "AMD_2022_10K",
+   "page": 55,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.553
+   }
+  },
+  {
+   "id": "financebench_id_00995",
+   "doc": "AMD_2022_10K",
+   "page": 3,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.791
+   }
+  },
+  {
+   "id": "financebench_id_01198",
+   "doc": "AMD_2022_10K",
+   "page": 42,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.512
+   }
+  },
+  {
+   "id": "financebench_id_00917",
+   "doc": "AMD_2022_10K",
+   "page": 42,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.556
+   }
+  },
+  {
+   "id": "financebench_id_01279",
+   "doc": "AMD_2022_10K",
+   "page": 57,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.565
+   }
+  },
+  {
+   "id": "financebench_id_00563",
+   "doc": "AMD_2022_10K",
+   "page": 47,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.681
+   }
+  },
+  {
+   "id": "financebench_id_00757",
+   "doc": "AMD_2022_10K",
+   "page": 11,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.636
+   }
+  },
+  {
+   "id": "financebench_id_00476",
+   "doc": "AMERICANEXPRESS_2022_10K",
+   "page": 0,
+   "doc_found": true,
+   "overlap": 0.982,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.298
+   }
+  },
+  {
+   "id": "financebench_id_01028",
+   "doc": "AMERICANEXPRESS_2022_10K",
+   "page": 154,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.648
+   }
+  },
+  {
+   "id": "financebench_id_00723",
+   "doc": "AMERICANEXPRESS_2022_10K",
+   "page": 95,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.494
+   }
+  },
+  {
+   "id": "financebench_id_00720",
+   "doc": "AMERICANEXPRESS_2022_10K",
+   "page": 95,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.494
+   }
+  },
+  {
+   "id": "financebench_id_01351",
+   "doc": "AMERICANEXPRESS_2022_10K",
+   "page": 43,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.415
+   }
+  },
+  {
+   "id": "financebench_id_01964",
+   "doc": "AMERICANEXPRESS_2022_10K",
+   "page": 97,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.576
+   }
+  },
+  {
+   "id": "financebench_id_01981",
+   "doc": "AMERICANEXPRESS_2022_10K",
+   "page": 44,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.676
+   }
+  },
+  {
+   "id": "financebench_id_05718",
+   "doc": "AMERICANWATERWORKS_2020_10K",
+   "page": 85,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.481
+   }
+  },
+  {
+   "id": "financebench_id_04254",
+   "doc": "AMERICANWATERWORKS_2021_10K",
+   "page": 85,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.553
+   }
+  },
+  {
+   "id": "financebench_id_04254",
+   "doc": "AMERICANWATERWORKS_2021_10K",
+   "page": 87,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.517
+   }
+  },
+  {
+   "id": "financebench_id_00070",
+   "doc": "AMERICANWATERWORKS_2022_10K",
+   "page": 80,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.562
+   }
+  },
+  {
+   "id": "financebench_id_00070",
+   "doc": "AMERICANWATERWORKS_2022_10K",
+   "page": 81,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.366
+   }
+  },
+  {
+   "id": "financebench_id_02608",
+   "doc": "BESTBUY_2017_10K",
+   "page": 55,
+   "doc_found": true,
+   "overlap": 0.838,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.421
+   }
+  },
+  {
+   "id": "financebench_id_04417",
+   "doc": "BESTBUY_2019_10K",
+   "page": 51,
+   "doc_found": true,
+   "overlap": 0.801,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.316
+   }
+  },
+  {
+   "id": "financebench_id_00685",
+   "doc": "BESTBUY_2023_10K",
+   "page": 39,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.576
+   }
+  },
+  {
+   "id": "financebench_id_01077",
+   "doc": "BESTBUY_2023_10K",
+   "page": 50,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.51
+   }
+  },
+  {
+   "id": "financebench_id_01275",
+   "doc": "BESTBUY_2023_10K",
+   "page": 41,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.519
+   }
+  },
+  {
+   "id": "financebench_id_00288",
+   "doc": "BESTBUY_2024Q2_10Q",
+   "page": 19,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.605
+   }
+  },
+  {
+   "id": "financebench_id_00460",
+   "doc": "BESTBUY_2024Q2_10Q",
+   "page": 16,
+   "doc_found": true,
+   "overlap": 0.994,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.764
+   }
+  },
+  {
+   "id": "financebench_id_01902",
+   "doc": "BESTBUY_2024Q2_10Q",
+   "page": 17,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.939
+   }
+  },
+  {
+   "id": "financebench_id_04660",
+   "doc": "BLOCK_2016_10K",
+   "page": 67,
+   "doc_found": true,
+   "overlap": 0.735,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.235
+   }
+  },
+  {
+   "id": "financebench_id_03838",
+   "doc": "BLOCK_2020_10K",
+   "page": 85,
+   "doc_found": true,
+   "overlap": 0.871,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.281
+   }
+  },
+  {
+   "id": "financebench_id_07661",
+   "doc": "BLOCK_2020_10K",
+   "page": 89,
+   "doc_found": true,
+   "overlap": 0.832,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.199
+   }
+  },
+  {
+   "id": "financebench_id_10285",
+   "doc": "BOEING_2018_10K",
+   "page": 51,
+   "doc_found": true,
+   "overlap": 0.994,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.607
+   }
+  },
+  {
+   "id": "financebench_id_00517",
+   "doc": "BOEING_2022_10K",
+   "page": 61,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.507
+   }
+  },
+  {
+   "id": "financebench_id_01091",
+   "doc": "BOEING_2022_10K",
+   "page": 112,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.394
+   }
+  },
+  {
+   "id": "financebench_id_00678",
+   "doc": "BOEING_2022_10K",
+   "page": 54,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.5
+   }
+  },
+  {
+   "id": "financebench_id_01290",
+   "doc": "BOEING_2022_10K",
+   "page": 7,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.8
+   }
+  },
+  {
+   "id": "financebench_id_01290",
+   "doc": "BOEING_2022_10K",
+   "page": 9,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.846
+   }
+  },
+  {
+   "id": "financebench_id_01290",
+   "doc": "BOEING_2022_10K",
+   "page": 13,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.786
+   }
+  },
+  {
+   "id": "financebench_id_00464",
+   "doc": "BOEING_2022_10K",
+   "page": 7,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.5
+   }
+  },
+  {
+   "id": "financebench_id_00494",
+   "doc": "BOEING_2022_10K",
+   "page": 8,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.602
+   }
+  },
+  {
+   "id": "financebench_id_00585",
+   "doc": "BOEING_2022_10K",
+   "page": 54,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.497
+   }
+  },
+  {
+   "id": "financebench_id_03473",
+   "doc": "COCACOLA_2017_10K",
+   "page": 73,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.576
+   }
+  },
+  {
+   "id": "financebench_id_03473",
+   "doc": "COCACOLA_2017_10K",
+   "page": 75,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.479
+   }
+  },
+  {
+   "id": "financebench_id_09724",
+   "doc": "COCACOLA_2021_10K",
+   "page": 61,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.554
+   }
+  },
+  {
+   "id": "financebench_id_06272",
+   "doc": "COCACOLA_2022_10K",
+   "page": 62,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.573
+   }
+  },
+  {
+   "id": "financebench_id_06272",
+   "doc": "COCACOLA_2022_10K",
+   "page": 65,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.518
+   }
+  },
+  {
+   "id": "financebench_id_10130",
+   "doc": "CORNING_2020_10K",
+   "page": 69,
+   "doc_found": true,
+   "overlap": 0.773,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.356
+   }
+  },
+  {
+   "id": "financebench_id_10130",
+   "doc": "CORNING_2020_10K",
+   "page": 71,
+   "doc_found": true,
+   "overlap": 0.684,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.415
+   }
+  },
+  {
+   "id": "financebench_id_02981",
+   "doc": "CORNING_2021_10K",
+   "page": 64,
+   "doc_found": true,
+   "overlap": 0.752,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.35
+   }
+  },
+  {
+   "id": "financebench_id_01346",
+   "doc": "CORNING_2022_10K",
+   "page": 23,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.603
+   }
+  },
+  {
+   "id": "financebench_id_00005",
+   "doc": "CORNING_2022_10K",
+   "page": 59,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.627
+   }
+  },
+  {
+   "id": "financebench_id_04209",
+   "doc": "COSTCO_2021_10K",
+   "page": 37,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.52
+   }
+  },
+  {
+   "id": "financebench_id_05915",
+   "doc": "CVSHEALTH_2018_10K",
+   "page": 301,
+   "doc_found": true,
+   "overlap": 0.815,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.417
+   }
+  },
+  {
+   "id": "financebench_id_05915",
+   "doc": "CVSHEALTH_2018_10K",
+   "page": 303,
+   "doc_found": true,
+   "overlap": 0.722,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.287
+   }
+  },
+  {
+   "id": "financebench_id_00790",
+   "doc": "CVSHEALTH_2022_10K",
+   "page": 107,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.397
+   }
+  },
+  {
+   "id": "financebench_id_00790",
+   "doc": "CVSHEALTH_2022_10K",
+   "page": 109,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.409
+   }
+  },
+  {
+   "id": "financebench_id_01107",
+   "doc": "CVSHEALTH_2022_10K",
+   "page": 172,
+   "doc_found": true,
+   "overlap": 0.98,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.68
+   }
+  },
+  {
+   "id": "financebench_id_01107",
+   "doc": "CVSHEALTH_2022_10K",
+   "page": 172,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.571
+   }
+  },
+  {
+   "id": "financebench_id_01107",
+   "doc": "CVSHEALTH_2022_10K",
+   "page": 173,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.608
+   }
+  },
+  {
+   "id": "financebench_id_01244",
+   "doc": "CVSHEALTH_2022_10K",
+   "page": 67,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.476
+   }
+  },
+  {
+   "id": "financebench_id_00839",
+   "doc": "FOOTLOCKER_2022_8K_dated_2022-08-19",
+   "page": 1,
+   "doc_found": true,
+   "overlap": 0.99,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.686
+   }
+  },
+  {
+   "id": "financebench_id_00822",
+   "doc": "FOOTLOCKER_2022_8K_dated-2022-05-20",
+   "page": 1,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.188
+   }
+  },
+  {
+   "id": "financebench_id_04103",
+   "doc": "GENERALMILLS_2019_10K",
+   "page": 52,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.627
+   }
+  },
+  {
+   "id": "financebench_id_04103",
+   "doc": "GENERALMILLS_2019_10K",
+   "page": 54,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.708
+   }
+  },
+  {
+   "id": "financebench_id_03471",
+   "doc": "GENERALMILLS_2020_10K",
+   "page": 49,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.682
+   }
+  },
+  {
+   "id": "financebench_id_04854",
+   "doc": "GENERALMILLS_2020_10K",
+   "page": 51,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.59
+   }
+  },
+  {
+   "id": "financebench_id_10136",
+   "doc": "GENERALMILLS_2022_10K",
+   "page": 44,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.608
+   }
+  },
+  {
+   "id": "financebench_id_10136",
+   "doc": "GENERALMILLS_2022_10K",
+   "page": 48,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.592
+   }
+  },
+  {
+   "id": "financebench_id_00956",
+   "doc": "JOHNSON_JOHNSON_2022_10K",
+   "page": 27,
+   "doc_found": true,
+   "overlap": 0.991,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.709
+   }
+  },
+  {
+   "id": "financebench_id_00669",
+   "doc": "JOHNSON_JOHNSON_2022_10K",
+   "page": 33,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.844
+   }
+  },
+  {
+   "id": "financebench_id_00711",
+   "doc": "JOHNSON_JOHNSON_2022_10K",
+   "page": 45,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.571
+   }
+  },
+  {
+   "id": "financebench_id_00711",
+   "doc": "JOHNSON_JOHNSON_2022_10K",
+   "page": 46,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.561
+   }
+  },
+  {
+   "id": "financebench_id_00651",
+   "doc": "JOHNSON_JOHNSON_2022Q4_EARNINGS",
+   "page": 0,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.576
+   }
+  },
+  {
+   "id": "financebench_id_01484",
+   "doc": "JOHNSON_JOHNSON_2022Q4_EARNINGS",
+   "page": 1,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.764
+   }
+  },
+  {
+   "id": "financebench_id_01488",
+   "doc": "JOHNSON_JOHNSON_2023_8K_dated-2023-08-30",
+   "page": 3,
+   "doc_found": true,
+   "overlap": 0.997,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.667
+   }
+  },
+  {
+   "id": "financebench_id_01490",
+   "doc": "JOHNSON_JOHNSON_2023_8K_dated-2023-08-30",
+   "page": 3,
+   "doc_found": true,
+   "overlap": 0.997,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.667
+   }
+  },
+  {
+   "id": "financebench_id_01491",
+   "doc": "JOHNSON_JOHNSON_2023_8K_dated-2023-08-30",
+   "page": 3,
+   "doc_found": true,
+   "overlap": 0.997,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.667
+   }
+  },
+  {
+   "id": "financebench_id_01487",
+   "doc": "JOHNSON_JOHNSON_2023Q2_EARNINGS",
+   "page": 9,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.855
+   }
+  },
+  {
+   "id": "financebench_id_00299",
+   "doc": "JPMORGAN_2021Q1_10Q",
+   "page": 18,
+   "doc_found": true,
+   "overlap": 0.996,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.629
+   }
+  },
+  {
+   "id": "financebench_id_02119",
+   "doc": "JPMORGAN_2021Q1_10Q",
+   "page": 5,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.842
+   }
+  },
+  {
+   "id": "financebench_id_00206",
+   "doc": "JPMORGAN_2022_10K",
+   "page": 2,
+   "doc_found": true,
+   "overlap": 0.991,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.588
+   }
+  },
+  {
+   "id": "financebench_id_00394",
+   "doc": "JPMORGAN_2022Q2_10Q",
+   "page": 20,
+   "doc_found": true,
+   "overlap": 0.996,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.691
+   }
+  },
+  {
+   "id": "financebench_id_02049",
+   "doc": "JPMORGAN_2023Q2_10Q",
+   "page": 84,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.605
+   }
+  },
+  {
+   "id": "financebench_id_10499",
+   "doc": "KRAFTHEINZ_2019_10K",
+   "page": 49,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.56
+   }
+  },
+  {
+   "id": "financebench_id_10499",
+   "doc": "KRAFTHEINZ_2019_10K",
+   "page": 51,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.533
+   }
+  },
+  {
+   "id": "financebench_id_04412",
+   "doc": "LOCKHEEDMARTIN_2020_10K",
+   "page": 66,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.418
+   }
+  },
+  {
+   "id": "financebench_id_04412",
+   "doc": "LOCKHEEDMARTIN_2020_10K",
+   "page": 68,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.537
+   }
+  },
+  {
+   "id": "financebench_id_03031",
+   "doc": "LOCKHEEDMARTIN_2021_10K",
+   "page": 67,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.549
+   }
+  },
+  {
+   "id": "financebench_id_03718",
+   "doc": "LOCKHEEDMARTIN_2022_10K",
+   "page": 62,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.448
+   }
+  },
+  {
+   "id": "financebench_id_04171",
+   "doc": "MGMRESORTS_2018_10K",
+   "page": 56,
+   "doc_found": true,
+   "overlap": 0.939,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.314
+   }
+  },
+  {
+   "id": "financebench_id_03849",
+   "doc": "MGMRESORTS_2020_10K",
+   "page": 64,
+   "doc_found": true,
+   "overlap": 0.948,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.494
+   }
+  },
+  {
+   "id": "financebench_id_03849",
+   "doc": "MGMRESORTS_2020_10K",
+   "page": 66,
+   "doc_found": true,
+   "overlap": 0.851,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.389
+   }
+  },
+  {
+   "id": "financebench_id_01254",
+   "doc": "MGMRESORTS_2022_10K",
+   "page": 31,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.417
+   }
+  },
+  {
+   "id": "financebench_id_00382",
+   "doc": "MGMRESORTS_2022Q4_EARNINGS",
+   "page": 12,
+   "doc_found": true,
+   "overlap": 0.99,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.592
+   }
+  },
+  {
+   "id": "financebench_id_01911",
+   "doc": "MGMRESORTS_2022Q4_EARNINGS",
+   "page": 13,
+   "doc_found": true,
+   "overlap": 0.996,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.44
+   }
+  },
+  {
+   "id": "financebench_id_01912",
+   "doc": "MGMRESORTS_2022Q4_EARNINGS",
+   "page": 2,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.963
+   }
+  },
+  {
+   "id": "financebench_id_01912",
+   "doc": "MGMRESORTS_2022Q4_EARNINGS",
+   "page": 3,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 1.0
+   }
+  },
+  {
+   "id": "financebench_id_01912",
+   "doc": "MGMRESORTS_2022Q4_EARNINGS",
+   "page": 3,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.958
+   }
+  },
+  {
+   "id": "financebench_id_00407",
+   "doc": "MGMRESORTS_2023Q2_10Q",
+   "page": 10,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.525
+   }
+  },
+  {
+   "id": "financebench_id_04700",
+   "doc": "MICROSOFT_2016_10K",
+   "page": 51,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.471
+   }
+  },
+  {
+   "id": "financebench_id_00552",
+   "doc": "MICROSOFT_2023_10K",
+   "page": 59,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.5
+   }
+  },
+  {
+   "id": "financebench_id_04458",
+   "doc": "NETFLIX_2015_10K",
+   "page": 39,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.455
+   }
+  },
+  {
+   "id": "financebench_id_04458",
+   "doc": "NETFLIX_2015_10K",
+   "page": 41,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.395
+   }
+  },
+  {
+   "id": "financebench_id_03282",
+   "doc": "NETFLIX_2017_10K",
+   "page": 44,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.541
+   }
+  },
+  {
+   "id": "financebench_id_04302",
+   "doc": "NIKE_2018_10K",
+   "page": 45,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.428
+   }
+  },
+  {
+   "id": "financebench_id_03531",
+   "doc": "NIKE_2019_10K",
+   "page": 53,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.621
+   }
+  },
+  {
+   "id": "financebench_id_04080",
+   "doc": "NIKE_2021_10K",
+   "page": 58,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.494
+   }
+  },
+  {
+   "id": "financebench_id_04080",
+   "doc": "NIKE_2021_10K",
+   "page": 60,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.615
+   }
+  },
+  {
+   "id": "financebench_id_01163",
+   "doc": "NIKE_2023_10K",
+   "page": 61,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.509
+   }
+  },
+  {
+   "id": "financebench_id_00080",
+   "doc": "PAYPAL_2022_10K",
+   "page": 60,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.389
+   }
+  },
+  {
+   "id": "financebench_id_04980",
+   "doc": "PEPSICO_2021_10K",
+   "page": 62,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.46
+   }
+  },
+  {
+   "id": "financebench_id_01009",
+   "doc": "PEPSICO_2022_10K",
+   "page": 3,
+   "doc_found": true,
+   "overlap": 0.996,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.493
+   }
+  },
+  {
+   "id": "financebench_id_01009",
+   "doc": "PEPSICO_2022_10K",
+   "page": 4,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.862
+   }
+  },
+  {
+   "id": "financebench_id_00735",
+   "doc": "PEPSICO_2022_10K",
+   "page": 25,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.738
+   }
+  },
+  {
+   "id": "financebench_id_01328",
+   "doc": "PEPSICO_2022_10K",
+   "page": 77,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.589
+   }
+  },
+  {
+   "id": "financebench_id_03620",
+   "doc": "PEPSICO_2022_10K",
+   "page": 61,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.589
+   }
+  },
+  {
+   "id": "financebench_id_03620",
+   "doc": "PEPSICO_2022_10K",
+   "page": 63,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.473
+   }
+  },
+  {
+   "id": "financebench_id_04481",
+   "doc": "PEPSICO_2022_10K",
+   "page": 61,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.589
+   }
+  },
+  {
+   "id": "financebench_id_04481",
+   "doc": "PEPSICO_2022_10K",
+   "page": 63,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.473
+   }
+  },
+  {
+   "id": "financebench_id_01482",
+   "doc": "PEPSICO_2023_8K_dated-2023-05-05",
+   "page": 3,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.261
+   }
+  },
+  {
+   "id": "financebench_id_00705",
+   "doc": "PEPSICO_2023_8K_dated-2023-05-30",
+   "page": 1,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.526
+   }
+  },
+  {
+   "id": "financebench_id_00882",
+   "doc": "PEPSICO_2023_8K_dated-2023-05-30",
+   "page": 1,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.521
+   }
+  },
+  {
+   "id": "financebench_id_01474",
+   "doc": "PEPSICO_2023Q1_EARNINGS",
+   "page": 0,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.645
+   }
+  },
+  {
+   "id": "financebench_id_01476",
+   "doc": "PEPSICO_2023Q1_EARNINGS",
+   "page": 0,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.645
+   }
+  },
+  {
+   "id": "financebench_id_00302",
+   "doc": "PFIZER_2021_10K",
+   "page": 58,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.62
+   }
+  },
+  {
+   "id": "financebench_id_00702",
+   "doc": "PFIZER_2021_10K",
+   "page": 56,
+   "doc_found": true,
+   "overlap": 0.989,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.489
+   }
+  },
+  {
+   "id": "financebench_id_02416",
+   "doc": "PFIZER_2021_10K",
+   "page": 69,
+   "doc_found": true,
+   "overlap": 0.997,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.751
+   }
+  },
+  {
+   "id": "financebench_id_02416",
+   "doc": "PFIZER_2021_10K",
+   "page": 70,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.771
+   }
+  },
+  {
+   "id": "financebench_id_00283",
+   "doc": "Pfizer_2023Q2_10Q",
+   "page": 40,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.556
+   }
+  },
+  {
+   "id": "financebench_id_00724",
+   "doc": "Pfizer_2023Q2_10Q",
+   "page": 37,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.596
+   }
+  },
+  {
+   "id": "financebench_id_02419",
+   "doc": "Pfizer_2023Q2_10Q",
+   "page": 40,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.556
+   }
+  },
+  {
+   "id": "financebench_id_00746",
+   "doc": "ULTABEAUTY_2023_10K",
+   "page": 0,
+   "doc_found": true,
+   "overlap": 0.994,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.442
+   }
+  },
+  {
+   "id": "financebench_id_00521",
+   "doc": "ULTABEAUTY_2023_10K",
+   "page": 56,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.348
+   }
+  },
+  {
+   "id": "financebench_id_00601",
+   "doc": "ULTABEAUTY_2023Q4_EARNINGS",
+   "page": 1,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.757
+   }
+  },
+  {
+   "id": "financebench_id_00603",
+   "doc": "ULTABEAUTY_2023Q4_EARNINGS",
+   "page": 2,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.714
+   }
+  },
+  {
+   "id": "financebench_id_00605",
+   "doc": "ULTABEAUTY_2023Q4_EARNINGS",
+   "page": 2,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.586
+   }
+  },
+  {
+   "id": "financebench_id_00606",
+   "doc": "ULTABEAUTY_2023Q4_EARNINGS",
+   "page": 1,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.757
+   }
+  },
+  {
+   "id": "financebench_id_00859",
+   "doc": "VERIZON_2021_10K",
+   "page": 84,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.754
+   }
+  },
+  {
+   "id": "financebench_id_02024",
+   "doc": "VERIZON_2021_10K",
+   "page": 62,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.522
+   }
+  },
+  {
+   "id": "financebench_id_02024",
+   "doc": "VERIZON_2021_10K",
+   "page": 93,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": -1,
+    "overlap": 0.472
+   }
+  },
+  {
+   "id": "financebench_id_00216",
+   "doc": "VERIZON_2022_10K",
+   "page": 55,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.508
+   }
+  },
+  {
+   "id": "financebench_id_00215",
+   "doc": "VERIZON_2022_10K",
+   "page": 55,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.486
+   }
+  },
+  {
+   "id": "financebench_id_00215",
+   "doc": "VERIZON_2022_10K",
+   "page": 22,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.613
+   }
+  },
+  {
+   "id": "financebench_id_00566",
+   "doc": "VERIZON_2022_10K",
+   "page": 76,
+   "doc_found": true,
+   "overlap": 0.991,
+   "best_neighbour": {
+    "offset": -2,
+    "overlap": 0.555
+   }
+  },
+  {
+   "id": "financebench_id_06247",
+   "doc": "WALMART_2018_10K",
+   "page": 56,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.492
+   }
+  },
+  {
+   "id": "financebench_id_06247",
+   "doc": "WALMART_2018_10K",
+   "page": 58,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.408
+   }
+  },
+  {
+   "id": "financebench_id_04784",
+   "doc": "WALMART_2019_10K",
+   "page": 47,
+   "doc_found": true,
+   "overlap": 0.926,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.41
+   }
+  },
+  {
+   "id": "financebench_id_06741",
+   "doc": "WALMART_2020_10K",
+   "page": 50,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 1,
+    "overlap": 0.482
+   }
+  },
+  {
+   "id": "financebench_id_06741",
+   "doc": "WALMART_2020_10K",
+   "page": 55,
+   "doc_found": true,
+   "overlap": 1.0,
+   "best_neighbour": {
+    "offset": 2,
+    "overlap": 0.453
+   }
+  }
+ ]
+}
