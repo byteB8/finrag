@@ -70,27 +70,34 @@ class BM25:
 EOT = "<|endoftext|>"   # Qwen3-Embedding pools the hidden state of this final token
 
 
-def embed_texts(name: str, texts: list[str], util: float, max_tokens: int = 2048,
-                instruction: str | None = None, slice_size: int = 8192, log=None) -> np.ndarray:
-    """L2-normalised Qwen3-Embedding vectors (float16). Queries carry an instruction; documents do not."""
-    from transformers import AutoTokenizer
-    from vllm import LLM
+class Embedder:
+    """L2-normalised Qwen3-Embedding vectors (float16). Queries carry an instruction; documents do not.
+    One engine per process: a second vLLM engine in the same process can hang it at exit."""
 
-    tok = AutoTokenizer.from_pretrained(name)
-    eot = tok.convert_tokens_to_ids(EOT)
-    llm = LLM(model=name, runner="pooling", dtype="float16", gpu_memory_utilization=util,
-              max_model_len=max_tokens, seed=0)
-    if instruction:
-        texts = [f"Instruct: {instruction}\nQuery:{t}" for t in texts]
-    parts = []
-    for i in range(0, len(texts), slice_size):
-        ids = tok(texts[i:i + slice_size], add_special_tokens=False)["input_ids"]
-        prompts = [{"prompt_token_ids": x[: max_tokens - 1] + [eot]} for x in ids]
-        v = np.asarray([r.outputs.embedding for r in llm.embed(prompts, use_tqdm=False)], dtype=np.float32)
-        parts.append((v / np.linalg.norm(v, axis=1, keepdims=True)).astype(np.float16))
-        if log:
-            log(f"  embedded {min(i + slice_size, len(texts))}/{len(texts)}")
-    return np.concatenate(parts)
+    def __init__(self, name: str, util: float, max_tokens: int = 2048):
+        from transformers import AutoTokenizer
+        from vllm import LLM
+
+        self.tok = AutoTokenizer.from_pretrained(name)
+        self.eot = self.tok.convert_tokens_to_ids(EOT)
+        self.max_tokens = max_tokens
+        self.llm = LLM(model=name, runner="pooling", dtype="float16", gpu_memory_utilization=util,
+                       max_model_len=max_tokens, seed=0)
+
+    def __call__(self, texts: list[str], instruction: str | None = None, slice_size: int = 8192,
+                 log=None) -> np.ndarray:
+        if instruction:
+            texts = [f"Instruct: {instruction}\nQuery:{t}" for t in texts]
+        parts = []
+        for i in range(0, len(texts), slice_size):
+            ids = self.tok(texts[i:i + slice_size], add_special_tokens=False)["input_ids"]
+            prompts = [{"prompt_token_ids": x[: self.max_tokens - 1] + [self.eot]} for x in ids]
+            out = self.llm.embed(prompts, use_tqdm=False)
+            v = np.asarray([r.outputs.embedding for r in out], dtype=np.float32)
+            parts.append((v / np.linalg.norm(v, axis=1, keepdims=True)).astype(np.float16))
+            if log:
+                log(f"embedded {min(i + slice_size, len(texts))}/{len(texts)}")
+        return np.concatenate(parts)
 
 
 RERANK_PREFIX = ("<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the "

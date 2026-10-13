@@ -179,7 +179,7 @@ def stage_embed(cfg: dict, args) -> None:
     import pandas as pd
 
     from core import data
-    from core.search import embed_texts
+    from core.search import Embedder
 
     e = cfg["embed"]
     gpu, util = env.pick_gpu(need_mib=e["need_mib"])
@@ -190,14 +190,13 @@ def stage_embed(cfg: dict, args) -> None:
     part = texts[args.shard * size:(args.shard + 1) * size]
     t0 = time.time()
     log = (lambda m: print(f"[shard {args.shard}] {m}", flush=True))
-    vecs = embed_texts(e["model"], part, util, max_tokens=e["max_len"], log=log)
+    embed = Embedder(e["model"], util, max_tokens=e["max_len"])
+    vecs = embed(part, log=log)
     np.save(env.INDEX / f"dense_{args.shard}.npy", vecs)
     log(f"{len(part)} chunks on GPU {gpu} in {time.time() - t0:.0f}s")
     if args.shard == 0:
         qs = data.load_questions(env.FB)
-        q = embed_texts(e["model"], [x["question"] for x in qs], util, max_tokens=e["max_len"],
-                        instruction=e["query_instruction"])
-        np.save(env.INDEX / "queries.npy", q)
+        np.save(env.INDEX / "queries.npy", embed([x["question"] for x in qs], instruction=e["query_instruction"]))
 
 
 # ---------------------------------------------------------------- search
@@ -450,5 +449,40 @@ def main() -> None:
     print(f"[{args.stage}] done in {time.time() - t0:.0f}s", flush=True)
 
 
+def _reap_children(timeout: float = 15) -> None:
+    """Terminate (then kill) every process this one started, e.g. vLLM's engine core."""
+    try:
+        import psutil
+    except ImportError:
+        return
+    kids = psutil.Process().children(recursive=True)
+    for k in kids:
+        try:
+            k.terminate()
+        except psutil.Error:
+            pass
+    _, alive = psutil.wait_procs(kids, timeout=timeout)
+    for k in alive:
+        try:
+            k.kill()
+        except psutil.Error:
+            pass
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    import traceback
+    code = 0
+    try:
+        main()
+    except SystemExit as e:
+        code = e.code if isinstance(e.code, int) else 1
+    except BaseException:
+        traceback.print_exc()
+        code = 1
+    # Outputs are written. vLLM's own teardown can hang a finished process, so stop its engine process
+    # directly and exit without waiting on it.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    _reap_children()
+    os._exit(code)
