@@ -202,3 +202,22 @@ def make_unanswerable(questions: list[dict], n_each: int = 25, seed: int = 0, sh
         out.append({"financebench_id": "unans-company-" + q["financebench_id"].split("_")[-1], "question": text,
                     "kind": "company", "source": q["financebench_id"]})
     return out
+
+
+def split_by_company(questions: list[dict], seed: int = 0) -> dict:
+    """Development and held-out test halves with no company in both. Companies are shuffled (fixed seed), then
+    dealt largest-first to whichever half has fewer questions so far, so the halves come out close to equal."""
+    by_company: dict[str, list[str]] = {}
+    for q in questions:
+        by_company.setdefault(q["company"], []).append(q["financebench_id"])
+    companies = sorted(by_company)
+    random.Random(seed).shuffle(companies)
+    companies.sort(key=lambda c: -len(by_company[c]))      # stable: equal sizes keep the shuffled order
+    halves: dict[str, list[str]] = {"dev": [], "test": []}
+    owners: dict[str, list[str]] = {"dev": [], "test": []}
+    for c in companies:
+        half = "dev" if len(halves["dev"]) <= len(halves["test"]) else "test"
+        halves[half] += by_company[c]
+        owners[half].append(c)
+    return {"seed": seed, "dev": sorted(halves["dev"]), "test": sorted(halves["test"]),
+            "dev_companies": sorted(owners["dev"]), "test_companies": sorted(owners["test"])}

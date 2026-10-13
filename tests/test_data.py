@@ -82,6 +82,16 @@ class Unanswerable(unittest.TestCase):
         self.assertEqual(data.make_unanswerable(self.qs, 2), data.make_unanswerable(self.qs, 2))
 
 
+class Split(unittest.TestCase):
+    def test_no_company_in_both_halves_and_balanced(self):
+        qs = [{"financebench_id": f"q{i}", "company": f"c{i % 7}"} for i in range(40)]
+        sp = data.split_by_company(qs, seed=0)
+        self.assertEqual(sorted(sp["dev"] + sp["test"]), sorted(q["financebench_id"] for q in qs))
+        self.assertFalse(set(sp["dev_companies"]) & set(sp["test_companies"]))
+        self.assertLessEqual(abs(len(sp["dev"]) - len(sp["test"])), 6)
+        self.assertEqual(sp, data.split_by_company(qs, seed=0))
+
+
 class Evidence(unittest.TestCase):
     def test_overlap_ignores_layout(self):
         page = "Total revenue\n$ 1,234\nNet income 567"
