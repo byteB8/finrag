@@ -420,7 +420,14 @@ def stage_grade(cfg: dict, args) -> None:
     gpu, util = env.pick_gpu(need_mib=j["need_mib"])
     env.use_gpu(gpu)
     model = llm.make_llm(j["model"], j["max_model_len"], util, max_num_seqs=j["max_num_seqs"])
-    convs = [grade.build_messages(r["question"], r["reference"], refs[r["id"]].get("justification"), r["answer"])
+    def candidate(r):
+        # An output cut off before its JSON (e.g. a long thinking run) has no answer; its raw text is unfinished
+        # reasoning that can overflow the judge's context, so it is graded as what it is.
+        if not r["check"]["parsed"] and r.get("finish") == "length":
+            return "(No answer: the model stopped at its token limit before giving one.)"
+        return (r["answer"] or "")[:2000]
+
+    convs = [grade.build_messages(r["question"], r["reference"], refs[r["id"]].get("justification"), candidate(r))
              for r in rows]
     outs = llm.chat(model, convs, llm.json_params(grade.SCHEMA, j["max_tokens"]))
     graded = []
