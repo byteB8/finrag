@@ -41,11 +41,14 @@ def gpus() -> list[dict]:
 
 
 def pick_gpu(need_mib: int, margin_mib: int = 768, cap: float = 0.92) -> tuple[int, float]:
-    """GPU with the most free memory, and the share of its total memory this process may take.
+    """GPU with the most free memory (or the one named by $GPU), and the share of its total memory this
+    process may take.
 
     Other people's processes may share the GPU, so the share is bounded by what is free now (less a
-    margin), not by the total. Raises if even the freest GPU cannot hold `need_mib`."""
-    g = gpus()[0]
+    margin), not by the total. Raises if the GPU cannot hold `need_mib`."""
+    all_gpus = gpus()
+    want = os.environ.get("GPU")
+    g = next(x for x in all_gpus if x["index"] == int(want)) if want else all_gpus[0]
     usable = g["free"] - margin_mib
     if usable < need_mib:
         raise RuntimeError(f"no GPU has {need_mib} MiB free (best: GPU {g['index']} with {g['free']} MiB)")
